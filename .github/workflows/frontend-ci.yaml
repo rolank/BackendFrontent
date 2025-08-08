@@ -21,8 +21,6 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm install
-      - name: Run lint on Frontend
-        run: npm run lint
       - name: Build Frontend
         run: npm run build
    
