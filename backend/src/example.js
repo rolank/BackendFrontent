@@ -1,6 +1,10 @@
-import { initDatabase } from "./db/init.js";
 import { Post } from "./db/models/post.js";
-initDatabase();
+import { mongoose } from "mongoose";
+const DATABASE_URL = "mongodb://localhost:27017/blog";
+
+await mongoose.connect(DATABASE_URL);
+
+//console.info("successfully connected to database:", DATABASE_URL);
 
 const posts = [
   {
@@ -39,7 +43,7 @@ const posts = [
 
 await Post.insertMany(posts);
 
-
-
 const findPosts = await Post.find();
 console.log(findPosts);
+
+await mongoose.disconnect();
