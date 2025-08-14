@@ -18,7 +18,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - uses: google-github-actions/auth@v2
         with:
-          credential_json: ${{ secrets.GOOGLECLOUD_CREDENTIALS }}
+          credentials_json: ${{ secrets.GOOGLECLOUD_CREDENTIALS }}
       - name: Build and push backend image
         uses : docker/build-push-action@v4
         with:
