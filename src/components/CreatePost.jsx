@@ -23,6 +23,9 @@ export function CreatePost() {
   return (
     <form onSubmit={handleSubmit}>
       <div>
+        <h2>Create and View posts</h2>
+      </div>
+      <div>
         <label htmlFor="create-title">Title:</label>
         <input
           type="text"
