@@ -28,6 +28,7 @@ export function CreatePost() {
           type="text"
           id="create-title"
           name="create-title"
+          placeholder="Enter post title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
@@ -40,6 +41,7 @@ export function CreatePost() {
           type="text"
           id="create-author"
           name="create-author"
+          placeholder="Enter your name"
           value={author}
           onChange={(e) => setAuthor(e.target.value)}
         />
