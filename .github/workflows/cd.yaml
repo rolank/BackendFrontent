@@ -21,7 +21,7 @@ jobs:
       DOCKER_PASSWORD: ${{ secrets.GCP_DOCKER_PASSWORD }}   
       SERVICE_NAME: ${ secrets.GOOGLECLOUD_REGION }
       FRONTEND_IMAGE: blog-frontend
-      PROJECT_NUMBER: 591006590099
+      PROJECT_NUMBER: "591006590099"
       workload_identity_pool: my-github-pool
       WIF_PROVIDER: projects/${{ env.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/my-github-pool/providers/my-github-provider
       WIF_SA: cloudrun-deployer@oidc-gcp-roland-01.iam.gserviceaccount.com
