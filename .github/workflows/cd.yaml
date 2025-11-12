@@ -17,9 +17,9 @@ jobs:
 
     env:
       PROJECT_ID: oidc-gcp-roland-01
-      DOCKER_USERNAME: ${{ secrets.GCP_DOCKER_USERNAME }}
-      DOCKER_PASSWORD: ${{ secrets.GCP_DOCKER_PASSWORD }}   
-      SERVICE_NAME: ${ secrets.GOOGLECLOUD_REGION }
+      DOCKER_USERNAME: ${{ secrets.DOCKERHUB_LOR2P }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}   
+      REGION: ${ secrets.GOOGLECLOUD_REGION }
       FRONTEND_IMAGE: blog-frontend
       PROJECT_NUMBER: "591006590099"
       workload_identity_pool: my-github-pool
@@ -28,17 +28,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Validate Docker credentials presence
-        run: |
-          if [ -z "$DOCKER_USERNAME" ] || [ -z "$DOCKER_PASSWORD" ]; then
-            echo "DOCKER_USERNAME or DOCKER_PASSWORD is empty"
-            exit 1
-          else
-            echo "Docker credentials appear present"
-          fi
-        env:
-          DOCKER_USERNAME: ${{ secrets.GCP_DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.GCP_DOCKER_PASSWORD }}      
       # Docker Hub Login
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
