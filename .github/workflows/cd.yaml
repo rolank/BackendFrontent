@@ -49,7 +49,7 @@ jobs:
       # Build and Push Docker Image to Docker Hub
       - name: Build and Push Docker Image
         run: |
-          docker build -t ${{ env.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE }}:latest -f ./Dockerfile ./frontend
+          docker build -t ${{ env.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE }}:latest -f ./Dockerfile .
           docker push ${{ env.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE }}:latest
       # Deploy to Cloud Run
       - name: Deploy to Cloud Run
