@@ -58,5 +58,5 @@ jobs:
         with:
           service: blog-frontend-service
           image: ${{ env.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE }}:latest
-          region: ${ secrets.GOOGLECLOUD_REGION }
+          region: ${{ secrets.GOOGLECLOUD_REGION }}
           allow_unauthenticated: true
