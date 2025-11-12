@@ -1,49 +1,43 @@
-name: Deploy Blog Application
+name: Backend CD to Google Cloud Run
 on:
   push:
     branches:
       - main
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  
     environment:
       name: production
-      url: ${{ steps.deploy-frontend.outputs.url }}
+      url: ${{ steps.deploy-to-cloud-run.outputs.url }}
+
+    env:
+      PROJECT_ID: oidc-gcp-roland-01
+      DOCKER_USERNAME: ${{ secrets.GCP_DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.GCP_DOCKER_PASSWORD }}   
+      SERVICE_NAME: ${ secrets.GOOGLECLOUD_REGION }
+      FRONTEND_IMAGE: blog-frontend
+      PROJECT_NUMBER: 591006590099
+      workload_identity_pool: my-github-pool
+      WIF_PROVIDER: projects/${{ env.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/my-github-pool/providers/my-github-provider
+      WIF_SA: cloudrun-deployer@oidc-gcp-roland-01.iam.gserviceaccount.com
+
     steps:
       - uses: actions/checkout@v4
-      - name: Login to DockerHub
+      # Docker Hub Login
+      - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKERHUB_LOR2P }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - uses: google-github-actions/auth@v2
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+      # Authenticate to GCP authentication using Workload Identity Federation
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2 
         with:
-          credentials_json: ${{ secrets.GOOGLECLOUD_CREDENTIALS }}
-      - name: Build and push backend image
-        uses : docker/build-push-action@v4
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_LOR2P }}/blog-backend:latest
-      - id: deploy-backend
-        name: Deploy backend
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: blog-backend
-          image: ${{ secrets.DOCKERHUB_LOR2P }}/blog-backend:latest
-          region: ${{ secrets.GOOGLECLOUD_REGION }}
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_LOR2P }}/blog-frontend:latest
-      - id: deploy-frontend
-        name: Deploy frontend
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: blog-frontend
-          image: ${{ secrets.DOCKERHUB_LOR2P }}/blog-frontend:latest
-          region: ${{ secrets.GOOGLECLOUD_REGION }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SA }}
+    
