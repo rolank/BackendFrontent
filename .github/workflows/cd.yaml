@@ -23,7 +23,7 @@ jobs:
       FRONTEND_IMAGE: blog-frontend
       PROJECT_NUMBER: "591006590099"
       workload_identity_pool: my-github-pool
-      WIF_PROVIDER: projects/${{ env.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/my-github-pool/providers/my-github-provider
+      WIF_PROVIDER: "projects/591006590099/locations/global/workloadIdentityPools/my-github-pool/providers/my-github-provider"
       WIF_SA: cloudrun-deployer@oidc-gcp-roland-01.iam.gserviceaccount.com
 
     steps:
