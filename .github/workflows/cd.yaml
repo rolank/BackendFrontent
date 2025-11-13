@@ -19,7 +19,6 @@ jobs:
       PROJECT_ID: oidc-gcp-roland-01
       DOCKER_USERNAME: ${{ secrets.DOCKERHUB_LOR2P }}
       DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
-      REGION: ${ secrets.GOOGLECLOUD_REGION }
       FRONTEND_IMAGE: blog-frontend
       PROJECT_NUMBER: "591006590099"
       workload_identity_pool: my-github-pool

@@ -10,3 +10,4 @@ FROM nginx AS final
 WORKDIR /usr/share/nginx/html
 COPY default.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /build/dist .
+EXPOSE 8080
