@@ -9,8 +9,4 @@ app.listen(port, () => {
   console.log("Server listening on port", port);
 });
 
-try {
-  await initDatabase();
-} catch (err) {
-  console.error("error connecting to database:", err);
-}
+
