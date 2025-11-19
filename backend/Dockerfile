@@ -1,4 +1,4 @@
-FROM node:v22.21.1
+FROM node:22.21.1
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install
