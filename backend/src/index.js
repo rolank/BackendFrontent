@@ -7,9 +7,9 @@ import { initDatabase } from "./db/init.js";
 try {
   await initDatabase();
 
-  const PORT = process.env.PORT || 8080;
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log("Server listening on port", PORT);
+  const port = process.env.PORT || 8080;
+  app.listen(port, () => {
+    console.log("Server listening on port", port);
   });
 } catch (err) {
   console.error("error connecting to database:", err);
