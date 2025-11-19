@@ -3,5 +3,6 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install
 COPY . .
-EXPOSE 3001/tcp
+ENV PORT=8080
+EXPOSE 8080
 CMD ["npm", "start"]
