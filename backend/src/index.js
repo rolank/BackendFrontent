@@ -6,7 +6,7 @@ import { initDatabase } from "./db/init.js";
 
 try {
   await initDatabase();
-  const PORT = process.env.PORT || 3000;
+  const PORT = process.env.PORT || 8080;
   console.info(`Server is running on http://localhost:${PORT}`);
   app.listen(PORT);
 } catch (err) {
