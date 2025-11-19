@@ -1,5 +1,5 @@
 FROM node:lts-jod AS build 
-ARG VITE_BACKEND_URL=http://localhost:3001/api/v1
+ARG VITE_BACKEND_URL=http://localhost:8080/api/v1
 WORKDIR /build
 COPY package.json ./
 COPY package-lock.json ./
