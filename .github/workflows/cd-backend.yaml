@@ -1,4 +1,4 @@
-name: Backend CD to Google Cloud Run
+name: Backend Continuous Deployment to GCP Cloud Run  
 on:
   push:
     branches:
@@ -6,25 +6,22 @@ on:
   workflow_dispatch: {}
 permissions:
   contents: read
-  id-token: write
-
+  id-token: write 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: ${{ steps.deploy-to-cloud-run.outputs.url }}
-
+      url: ${{ steps.deploy-to-cloud-run.outputs.url }} 
     env:
       PROJECT_ID: oidc-gcp-roland-01
       DOCKER_USERNAME: ${{ secrets.DOCKERHUB_LOR2P }}
       DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
-      FRONTEND_IMAGE: blog-frontend
+      BACKEND_IMAGE: blog-backend
       PROJECT_NUMBER: "591006590099"
       workload_identity_pool: my-github-pool
       WIF_PROVIDER: "projects/591006590099/locations/global/workloadIdentityPools/my-github-pool/providers/my-github-provider"
       WIF_SA: cloudrun-deployer@oidc-gcp-roland-01.iam.gserviceaccount.com
-
     steps:
       - uses: actions/checkout@v4
       # Docker Hub Login
@@ -48,15 +45,14 @@ jobs:
       # Build and Push Docker Image to Docker Hub
       - name: Build and Push Docker Image
         run: |
-          docker build -t ${{ env.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE }}:latest -f ./Dockerfile .
-          docker push ${{ env.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE }}:latest
+          docker build -t ${{ env.DOCKER_USERNAME }}/${{ env.BACKEND_IMAGE }}:latest -f ./backend/Dockerfile .
+          docker push ${{ env.DOCKER_USERNAME }}/${{ env.BACKEND_IMAGE }}:latest
       # Deploy to Cloud Run
       - name: Deploy to Cloud Run
         id: deploy-to-cloud-run
         uses: google-github-actions/deploy-cloudrun@v1
         with:
-          service: blog-frontend-service
-          image: ${{ env.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE }}:latest
+          service: blog-backend-service
+          image: ${{ env.DOCKER_USERNAME }}/${{ env.BACKEND_IMAGE }}:latest
           region: ${{ secrets.GOOGLECLOUD_REGION }}
-          platform: managed
-          allow_unauthenticated: true
+          platform: managed   
