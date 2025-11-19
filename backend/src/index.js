@@ -7,8 +7,9 @@ import { initDatabase } from "./db/init.js";
 try {
   await initDatabase();
   const PORT = process.env.PORT || 8080;
-  console.info(`Server is running on http://localhost:${PORT}`);
-  app.listen(PORT);
+  app.listen(PORT,'0.0.0.0', ()=> {
+    console.log(`Server is running on port ${PORT}`);
+  });
 } catch (err) {
   console.error("error connecting to database:", err);
 }
