@@ -54,6 +54,6 @@ jobs:
         with:
           service: blog-backend-service
           //image: ${{ env.DOCKER_USERNAME }}/${{ env.BACKEND_IMAGE }}:latest
-          image: us-central1-docker.pkg.dev/oidc-gcp-roland-01/blog/blog-backend
+          image: us-central1-docker.pkg.dev/oidc-gcp-roland-01/blog/blog-backend:latest
           region: ${{ secrets.GOOGLECLOUD_REGION }}
           platform: managed   
