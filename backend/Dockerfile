@@ -1,8 +1,20 @@
-FROM node:22.21.1
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm install
+# backend/Dockerfile
+FROM node:18-alpine
+
+WORKDIR /usr/src/app
+
+# copy only package files and install first for caching
+COPY package*.json ./
+RUN npm ci --only=production
+
+# copy source
 COPY . .
+
+# make sure port 8080 is exposed
 EXPOSE 8080
-ENV PORT=8080
-CMD ["npm", "start"]
+
+# runtime environment
+ENV NODE_ENV=production
+
+# start the app
+CMD ["node", "index.js"]
