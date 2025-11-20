@@ -53,6 +53,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: blog-backend-service
-          image: ${{ env.DOCKER_USERNAME }}/${{ env.BACKEND_IMAGE }}:latest
+          //image: ${{ env.DOCKER_USERNAME }}/${{ env.BACKEND_IMAGE }}:latest
+          image: us-central1-docker.pkg.dev/oidc-gcp-roland-01/blog/blog-backend
           region: ${{ secrets.GOOGLECLOUD_REGION }}
           platform: managed   
