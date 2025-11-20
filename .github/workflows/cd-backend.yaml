@@ -40,14 +40,20 @@ jobs:
         with:
           project_id: ${{ env.PROJECT_ID }}
 
-      # Build and Push to Artifact Registry
+      # Build and Push Image to Artifact Registry
       - name: Build and Push Image to Artifact Registry
         run: |
           IMAGE="us-central1-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:${GITHUB_SHA}"
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
-          
-          docker build --platform linux/amd64 -t "$IMAGE" -f ./backend/Dockerfile .
+
           gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+          docker build \
+            --platform linux/amd64 \
+            -t "$IMAGE" \
+            -f backend/Dockerfile \
+            backend/
+
           docker push "$IMAGE"
 
       # Deploy to Cloud Run
@@ -58,6 +64,4 @@ jobs:
           service: blog-backend-service
           image: ${{ env.IMAGE }}
           region: ${{ env.REGION }}
-          platform: managed
-          allow-unauthenticated: true
-
+          flags: "--allow-unauthenticated"
