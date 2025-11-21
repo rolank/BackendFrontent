@@ -52,7 +52,7 @@ jobs:
             --platform linux/amd64 \
             -t "$IMAGE" \
             -f backend/Dockerfile \
-            backend_bk/
+            backend
 
           docker push "$IMAGE"
 
