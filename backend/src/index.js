@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { app } from "./app.js";
-//import { initDatabase } from "./db/init.js";
+import { initDatabase } from "./db/init.js";
 
 const port = process.env.PORT || 8080;
 
@@ -15,5 +15,10 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-// await initDatabase();
-// console.log("Database initialized");  
+
+try {
+  await initDatabase();
+  console.log("Database connected");
+} catch (err) {
+  console.error("error connecting to database:", err);
+}
