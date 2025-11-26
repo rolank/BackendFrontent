@@ -49,7 +49,7 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           docker build --platform linux/amd64 \
-          --build-arg "VITE_BACKEND_URL=https://blog-backend-service-591006590099.us-central1.run.app/api/v1" \
+          --build-arg "BUILD_ARG_BACKEND_URL=https://blog-backend-service-591006590099.us-central1.run.app/api/v1" \
           -t ${{ env.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE }}:latest -f ./Dockerfile .
           docker push ${{ env.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE }}:latest
       # Deploy to Cloud Run

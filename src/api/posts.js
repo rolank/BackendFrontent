@@ -1,6 +1,8 @@
+import { API_BASE_URL } from "../config/api.js";
+
 export const getPosts = async (queryParams) => {
   const response = await fetch(
-    `${import.meta.env.VITE_BACKEND_URL}/posts?${new URLSearchParams(queryParams)}`,
+    `${API_BASE_URL}/posts?${new URLSearchParams(queryParams)}`,
     {
       headers: {
         "contents-Type": "application/json",
@@ -15,7 +17,7 @@ export const getPosts = async (queryParams) => {
 
 export const createPost = async (post) => {
   console.log("Creating post:", post);
-  const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/posts`, {
+  const response = await fetch(`${API_BASE_URL}/posts`, {
     method: "POST",
     headers: {
       "content-Type": "application/json",

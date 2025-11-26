@@ -1,5 +1,7 @@
 FROM node:lts-jod AS build 
-ARG VITE_BACKEND_URL
+ARG BUILD_ARG_BACKEND_URL
+# Set the backend URL environment variable using the build argument
+ENV VITE_BACKEND_URL=${BUILD_ARG_BACKEND_URL}
 WORKDIR /build
 COPY package.json ./
 COPY package-lock.json ./
