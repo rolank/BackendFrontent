@@ -96,3 +96,54 @@ describe("Create Post", () => {
     expect(fetchedPost.author.toString()).toBe(postDetails.author.toString());
   });
 });
+describe("List Posts", () => {
+  let post1, post2, post3;
+  beforeEach(async () => {
+    // Clear existing posts
+    await Post.deleteMany({}).exec();
+
+    // Create sample posts
+    post1 = await createPost({
+      title: "Post One",    
+      author: userId,
+      contents: "Content for post one",
+      tags: ["tag1", "tag2"],
+    });
+    post2 = await createPost({
+      title: "Post Two",
+      author: userId,
+      contents: "Content for post two",
+      tags: ["tag2", "tag3"],
+    });
+    post3 = await createPost({
+      title: "Post Three",
+      author: userId,
+      contents: "Content for post three",
+      tags: ["tag1", "tag3"],
+    }); 
+  });
+
+  test("list all posts", async () => {
+    const posts = await listAllPosts({ sortBy: "createdAt", sortOrder: "ascending" });
+    expect(posts.length).toBe(3);
+    expect(posts[0].title).toBe("Post One");
+    expect(posts[1].title).toBe("Post Two");
+    expect(posts[2].title).toBe("Post Three");
+    console.log("Posts:", posts);
+  });
+
+  test("list posts by author", async () => {
+    const posts = await listPostsByAuthor(userId, { sortBy: "createdAt", sortOrder: "descending" });
+    expect(posts.length).toBe(3);
+    expect(posts[0].title).toBe("Post Three");
+    expect(posts[1].title).toBe("Post Two");
+    expect(posts[2].title).toBe("Post One");
+  });
+
+  test("list posts by tag", async () => {
+    const posts = await listPostsByTag("tag1", { sortBy: "createdAt", sortOrder: "ascending" });
+    expect(posts.length).toBe(2);
+    expect(posts[0].title).toBe("Post One");
+    expect(posts[1].title).toBe("Post Three");
+  });
+});

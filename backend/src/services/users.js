@@ -30,3 +30,9 @@ export async function findUserId(userName) {
   const userId = await User.findOne({ username: userName }).select("_id").exec();
   return userId ? userId._id : null;
 } 
+
+
+export async function getUsername(userId) { 
+  const user = await User.findById(userId).select("username").exec();
+  return user ? user.username : null;
+}
