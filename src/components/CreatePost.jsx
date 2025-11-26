@@ -31,7 +31,8 @@ export function CreatePost() {
           type="text"
           id="create-title"
           name="create-title"
-          placeholder="Enter post title"
+          //placeholder="Enter post title"
+          placeholder="${import.meta.env.VITE_BACKEND_URL}"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required

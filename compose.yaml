@@ -9,6 +9,7 @@ services:
     environment:
       - PORT=3001
       - DATABASE_URL=mongodb://blog-database:27017/blog
+      - NODE_ENV=development
     ports:
       - "3001:3001"
     depends_on:
