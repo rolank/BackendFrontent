@@ -1,0 +1,11 @@
+{
+  "watch": [
+    "./src",
+    ".env",
+    ".env.development",
+    ".env.production",
+    ".env.staging",
+    ".env.test",
+    "package-lock.json"
+  ]
+}
