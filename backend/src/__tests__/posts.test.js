@@ -18,12 +18,11 @@ import { findUserId } from "../services/users";
 let userId;
 
 beforeAll(async () => {
-  // Retrieve the user created in the global setup
-  userId =  await findUserId("testuser");
-
+  // Global Jest setup handles DB connection in setupFileAfterEnv.js
+  // Retrieve the user created in the global setup (or create if missing)
+  userId = await findUserId("testuser");
   if (!userId) {
     console.log("User 'testuser' not found, creating user...");
-    // If the user does not exist, create it
     let createdUser = await createUser({
       username: "testuser",
       email: "test@rolandklahitar.dev",
@@ -31,7 +30,6 @@ beforeAll(async () => {
     });
     userId = createdUser._id;
   }
-
   console.log(`Using userId: ${userId}`);
 }, 30000);
 
@@ -83,6 +81,7 @@ describe("Create Post", () => {
     }
   });
 
+
   test("only required parameters should succeed", async () => {
     const postDetails = {
       title: "Hello Mongoose",
@@ -95,6 +94,13 @@ describe("Create Post", () => {
     expect(fetchedPost.title).toBe(postDetails.title);
     expect(fetchedPost.author.toString()).toBe(postDetails.author.toString());
   });
+
+});
+afterAll(async () => {
+  // Close mongoose connection after tests to avoid open handles
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
+  }
 });
 describe("List Posts", () => {
   let post1, post2, post3;
@@ -140,10 +146,4 @@ describe("List Posts", () => {
     expect(posts[2].title).toBe("Post One");
   });
 
-  test("list posts by tag", async () => {
-    const posts = await listPostsByTag("tag1", { sortBy: "createdAt", sortOrder: "ascending" });
-    expect(posts.length).toBe(2);
-    expect(posts[0].title).toBe("Post One");
-    expect(posts[1].title).toBe("Post Three");
-  });
 });

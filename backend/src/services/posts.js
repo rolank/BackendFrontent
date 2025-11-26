@@ -1,13 +1,13 @@
 import { Post } from "../db/models/post.js";
 
-
-
 export async function createPost({ title, author, contents, tags }) {
   console.log(`Creating post with author: ${author}`);
   console.log(`Type of author: ${typeof author}`);
-  console.log(`Is author a valid ObjectId? ${Post.db.base.Types.ObjectId.isValid(author)}`);
+  console.log(
+    `Is author a valid ObjectId? ${Post.db.base.Types.ObjectId.isValid(author)}`,
+  );
   console.log(`Author value: ${author}`);
-  
+
   const post = new Post({ title, author, contents, tags });
   return await post.save();
 }
@@ -19,7 +19,7 @@ async function listPosts(
   /*The { [variable]: … } operator resolves the string stored in the variable to a key name for the
   created object. So, if our variable contains 'createdAt', the resulting object will be { createdAt: … }. 
   */
-  
+
   // return await Post.find(query).sort({
   //   [sortBy]: sortOrder === "descending" ? -1 : 1,
   // });
@@ -32,20 +32,12 @@ async function listPosts(
         from: "users", // collection name in MongoDB
         localField: "author",
         foreignField: "_id",
-        as: "authorDetails"
-      }
+        as: "authorDetails",
+      },
     },
-    { $unwind: "$authorDetails" },
-    {
-      $project: {
-        title: 1,
-        author: "$authorDetails",
-        contents: 1,
-        tags: 1,
-      }
-    }
+    { $set: { author: { $arrayElemAt: ["$authorDetails.username", 0] } } },
+    { $project: { authorDetails: 0 } }, // Remove authorDetails field 
   ]);
-
 }
 
 export async function listAllPosts(options) {
@@ -74,5 +66,3 @@ export async function updatePost(postId, { title, author, contents, tags }) {
 export async function deletePost(postId) {
   return await Post.deleteOne({ _id: postId });
 }
-
-
