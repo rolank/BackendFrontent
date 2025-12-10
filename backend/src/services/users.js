@@ -1,8 +1,7 @@
 import bcrypt from "bcrypt";
 import { User } from "../db/models/user.js";
 import jwt from "jsonwebtoken";
-import js from "@eslint/js";
-import { use } from "react";
+
 
 export async function createUser({ username, email, password }) {
   const hashedPassword = await bcrypt.hash(password, 10);
