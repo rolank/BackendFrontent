@@ -2,6 +2,42 @@
 
 This document explains how the testing infrastructure works in the backend, including the Jest setup, global test configuration, and how individual tests are executed.
 
+## Quick Start
+
+### Run Unit Tests (Service/Business Logic)
+
+```bash
+npm run test
+```
+
+Runs `posts.test.js` - tests the service layer directly with in-memory MongoDB.
+
+### Run Integration Tests (HTTP API Endpoints)
+
+```bash
+# Terminal 1: Start the server
+npm run dev
+
+# Terminal 2: Run integration tests
+npm run test:integration
+```
+
+Runs `endpoints.integration.test.js` - tests HTTP endpoints against the running server.
+
+## Test Types
+
+| Test File                       | Type              | Purpose                          | Database                   |
+| ------------------------------- | ----------------- | -------------------------------- | -------------------------- |
+| `posts.test.js`                 | Unit Tests        | Tests service functions directly | In-Memory MongoDB          |
+| `endpoints.integration.test.js` | Integration Tests | Tests HTTP API endpoints         | Development MongoDB (real) |
+
+**Key Difference:**
+
+- **Unit tests** call functions directly: `createPost()`, `listAllPosts()`
+- **Integration tests** make HTTP requests: `POST /api/v1/posts`, `GET /api/v1/posts`
+
+---
+
 ## Overview
 
 The backend uses **Jest** as the testing framework with a sophisticated multi-layer setup to ensure:

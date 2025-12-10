@@ -8,6 +8,10 @@ import { loadConfig } from "./config/env.js";
 // Load environment-specific configuration
 loadConfig();
 
+// Initialize JWT middleware after config is loaded
+import { initializeJwtMiddleware } from "./middleware/jwt.js";
+initializeJwtMiddleware();
+
 import { app } from "./app.js";
 import { initDatabase } from "./db/init.js";
 
@@ -27,5 +31,3 @@ in cloud environments, the server might not be running on localhost.
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server is running on port ${port}`);
 });
-
-

@@ -8,7 +8,7 @@ import {
   deletePost,
 } from "../services/posts.js";
 import { findUserId } from "../services/users.js";
-
+import { requireAuth } from "../middleware/jwt.js";
 
 export function postsRoutes(app) {
   app.get("/", (req, res) => {
@@ -44,6 +44,10 @@ export function postsRoutes(app) {
     if (!id) {
       return res.status(400).send("Post ID is required");
     }
+    // Validate if id is a valid MongoDB ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).send("Invalid post ID format");
+    }
     try {
       const post = await getPostById(id);
       if (!post) {
@@ -56,9 +60,9 @@ export function postsRoutes(app) {
     }
   });
 
-  app.post("/api/v1/posts", async (req, res) => {
+  app.post("/api/v1/posts", requireAuth, async (req, res) => {
     const { title, author, contents, tags } = req.body;
-    let userId
+    let userId;
 
     if (!title || !author || !contents) {
       return res.status(400).send("Title, author, and contents are required");
@@ -71,7 +75,9 @@ export function postsRoutes(app) {
       console.log(`Creating post with userId: ${userId}`);
       console.log(`Type of userId: ${typeof userId}`);
       console.log(`userId value: ${userId}`);
-      console.log(`Title: ${title}, author: ${userId}, Contents: ${contents}, Tags: ${tags}`);
+      console.log(
+        `Title: ${title}, author: ${userId}, Contents: ${contents}, Tags: ${tags}`,
+      );
       const post = await createPost({ title, author: userId, contents, tags });
       res.status(201).json(post);
     } catch (err) {
@@ -80,13 +86,17 @@ export function postsRoutes(app) {
     }
   });
 
-  app.patch("/api/v1/posts/:id", async (req, res) => {
+  app.patch("/api/v1/posts/:id", requireAuth, async (req, res) => {
     const { id } = req.params;
     const { title, author, contents, tags } = req.body;
     if (!id || !title || !author || !contents) {
       return res
         .status(400)
         .send("Post ID, title, author, and contents are required");
+    }
+    // Validate if id is a valid MongoDB ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).send("Invalid post ID format");
     }
     try {
       const updatedPost = await updatePost(id, {
@@ -105,10 +115,14 @@ export function postsRoutes(app) {
     }
   });
 
-  app.delete("/api/v1/posts/:id", async (req, res) => {
+  app.delete("/api/v1/posts/:id", requireAuth, async (req, res) => {
     const { id } = req.params;
     if (!id) {
       return res.status(400).send("Post ID is required");
+    }
+    // Validate if id is a valid MongoDB ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).send("Invalid post ID format");
     }
     try {
       const result = await deletePost(id);
