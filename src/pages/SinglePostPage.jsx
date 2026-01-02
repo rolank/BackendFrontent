@@ -1,10 +1,31 @@
-import { useLoaderData, Link, Form } from "react-router-dom";
-import { getCurrentUser, isAuthenticated } from "../utils/auth.js";
+import { useLoaderData, Link, Form, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getCurrentUser } from "../utils/auth.js";
+import { API_BASE_URL } from "../config/api.js";
 import "./SinglePostPage.css";
 
 export function SinglePostPage() {
-  const { post } = useLoaderData();
+  const loaderData = useLoaderData();
+  const { postId } = useParams();
   const currentUser = getCurrentUser();
+
+  // Use React Query with loader data as initialData
+  const { data } = useQuery({
+    queryKey: ["post", postId],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}`, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) throw new Error("Post not found");
+      return response.json();
+    },
+    initialData: loaderData.post,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const post = data || loaderData.post;
   const isOwner = currentUser && currentUser.username === post.author;
 
   return (

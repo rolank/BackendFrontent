@@ -1,17 +1,40 @@
 import { useState } from "react";
 import { useLoaderData, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { PostFilter } from "../components/PostFilter.jsx";
 import { PostSorting } from "../components/PostSorting.jsx";
 import { PostList } from "../components/PostList.jsx";
+import { API_BASE_URL } from "../config/api.js";
 import "./HomePage.css";
 
 export function HomePage() {
-  const { posts, filters } = useLoaderData();
+  const loaderData = useLoaderData();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const author = searchParams.get("author") || "";
   const sortBy = searchParams.get("sortBy") || "createdAt";
   const sortOrder = searchParams.get("sortOrder") || "descending";
+
+  // Use React Query with loader data as initialData
+  const { data } = useQuery({
+    queryKey: ["posts", { author, sortBy, sortOrder }],
+    queryFn: async () => {
+      const response = await fetch(
+        `${API_BASE_URL}/posts?author=${author}&sortBy=${sortBy}&sortOrder=${sortOrder}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      if (!response.ok) throw new Error("Failed to fetch posts");
+      return response.json();
+    },
+    initialData: loaderData.posts, // Use loader data as starting point
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+
+  const posts = data || [];
 
   const handleFilterChange = (value) => {
     if (value) {

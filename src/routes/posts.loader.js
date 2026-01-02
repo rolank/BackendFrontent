@@ -2,56 +2,78 @@ import { API_BASE_URL } from "../config/api.js";
 import { getAuthHeaders } from "../utils/auth.js";
 
 /**
- * Loader for blog home page
+ * Loader for blog home page with React Query integration
  * Fetches posts with optional filtering and sorting
  */
-export async function postsLoader({ request }) {
-  const url = new URL(request.url);
-  const author = url.searchParams.get("author") || "";
-  const sortBy = url.searchParams.get("sortBy") || "createdAt";
-  const sortOrder = url.searchParams.get("sortOrder") || "descending";
+export function postsLoader(queryClient) {
+  return async ({ request }) => {
+    const url = new URL(request.url);
+    const author = url.searchParams.get("author") || "";
+    const sortBy = url.searchParams.get("sortBy") || "createdAt";
+    const sortOrder = url.searchParams.get("sortOrder") || "descending";
 
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/posts?author=${author}&sortBy=${sortBy}&sortOrder=${sortOrder}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
+    const queryKey = ["posts", { author, sortBy, sortOrder }];
+
+    try {
+      const posts = await queryClient.fetchQuery({
+        queryKey,
+        queryFn: async () => {
+          const response = await fetch(
+            `${API_BASE_URL}/posts?author=${author}&sortBy=${sortBy}&sortOrder=${sortOrder}`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            },
+          );
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch posts");
+          }
+
+          return response.json();
         },
-      },
-    );
+        staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+      });
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch posts");
+      return { posts, filters: { author, sortBy, sortOrder } };
+    } catch (error) {
+      throw new Error(`Failed to load posts: ${error.message}`);
     }
-
-    const posts = await response.json();
-    return { posts, filters: { author, sortBy, sortOrder } };
-  } catch (error) {
-    throw new Error(`Failed to load posts: ${error.message}`);
-  }
+  };
 }
 
 /**
- * Loader for single post view
+ * Loader for single post view with React Query integration
  */
-export async function postLoader({ params }) {
-  const { postId } = params;
+export function postLoader(queryClient) {
+  return async ({ params }) => {
+    const { postId } = params;
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/posts/${postId}`, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const queryKey = ["post", postId];
 
-    if (!response.ok) {
-      throw new Error("Post not found");
+    try {
+      const post = await queryClient.fetchQuery({
+        queryKey,
+        queryFn: async () => {
+          const response = await fetch(`${API_BASE_URL}/posts/${postId}`, {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error("Post not found");
+          }
+
+          return response.json();
+        },
+        staleTime: 1000 * 60 * 5,
+      });
+
+      return { post };
+    } catch (error) {
+      throw new Error(`Failed to load post: ${error.message}`);
     }
-
-    const post = await response.json();
-    return { post };
-  } catch (error) {
-    throw new Error(`Failed to load post: ${error.message}`);
-  }
+  };
 }

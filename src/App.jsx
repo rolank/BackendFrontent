@@ -28,7 +28,17 @@ import {
   deletePostAction,
 } from "./routes/posts.action.js";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes - data stays fresh
+      cacheTime: 1000 * 60 * 10, // 10 minutes - cache persists
+      refetchOnWindowFocus: false, // Don't refetch when window regains focus
+      refetchOnReconnect: true, // Refetch when internet reconnects
+      retry: 1, // Retry failed requests once
+    },
+  },
+});
 
 const router = createBrowserRouter([
   {
@@ -40,7 +50,7 @@ const router = createBrowserRouter([
       {
         index: true,
         Component: HomePage,
-        loader: postsLoader,
+        loader: postsLoader(queryClient),
       },
       {
         path: "login",
@@ -59,19 +69,19 @@ const router = createBrowserRouter([
       {
         path: "create-post",
         Component: CreatePostPage,
-        action: createPostAction,
+        action: createPostAction(queryClient),
       },
       {
         path: "posts/:postId",
         Component: SinglePostPage,
-        loader: postLoader,
-        action: deletePostAction,
+        loader: postLoader(queryClient),
+        action: deletePostAction(queryClient),
       },
       {
         path: "posts/:postId/edit",
         Component: EditPostPage,
-        loader: postLoader,
-        action: updatePostAction,
+        loader: postLoader(queryClient),
+        action: updatePostAction(queryClient),
       },
     ],
   },
