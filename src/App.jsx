@@ -33,23 +33,23 @@ const queryClient = new QueryClient();
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Layout />,
+    Component: Layout,
     loader: authLoader,
     id: "root",
     children: [
       {
         index: true,
-        element: <HomePage />,
+        Component: HomePage,
         loader: postsLoader,
       },
       {
         path: "login",
-        element: <LoginPage />,
+        Component: LoginPage,
         action: loginAction,
       },
       {
         path: "signup",
-        element: <SignUpPage />,
+        Component: SignUpPage,
         action: signupAction,
       },
       {
@@ -58,18 +58,18 @@ const router = createBrowserRouter([
       },
       {
         path: "create-post",
-        element: <CreatePostPage />,
+        Component: CreatePostPage,
         action: createPostAction,
       },
       {
         path: "posts/:postId",
-        element: <SinglePostPage />,
+        Component: SinglePostPage,
         loader: postLoader,
         action: deletePostAction,
       },
       {
         path: "posts/:postId/edit",
-        element: <EditPostPage />,
+        Component: EditPostPage,
         loader: postLoader,
         action: updatePostAction,
       },
