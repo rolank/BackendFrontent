@@ -1,0 +1,29 @@
+.post {
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.post-title {
+  margin-bottom: 10px;
+}
+
+.post-title-link {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.post-title-link:hover {
+  text-decoration: underline;
+}
+
+.post-content {
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+.post-author {
+  font-style: italic;
+  color: #666;
+}

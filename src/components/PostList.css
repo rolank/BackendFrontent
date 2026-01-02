@@ -1,0 +1,15 @@
+.post-list {
+  margin-top: 20px;
+}
+
+.post-list-empty {
+  text-align: center;
+  color: #666;
+  padding: 20px;
+}
+
+.post-list-divider {
+  margin: 15px 0;
+  border: none;
+  border-top: 1px solid #e0e0e0;
+}
