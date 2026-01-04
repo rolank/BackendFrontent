@@ -2,7 +2,6 @@ import bcrypt from "bcrypt";
 import { User } from "../db/models/user.js";
 import jwt from "jsonwebtoken";
 
-
 export async function createUser({ username, email, password }) {
   const hashedPassword = await bcrypt.hash(password, 10);
   const user = new User({ username, email, passwordHash: hashedPassword });
