@@ -326,7 +326,190 @@ For the deployment workflows to function, ensure these GitHub repository secrets
 
 ### For `cd-backend.yaml`:
 
-- No secrets required (uses Workload Identity Federation)
+- `DATABASE_URL`: MongoDB connection string (e.g., `mongodb+srv://username:password@cluster.mongodb.net/database`)
+- `JWT_SECRET`: Secret key for JWT token signing (generate with `openssl rand -base64 32`)
+
+**Note**: While Workload Identity Federation handles GCP authentication, your backend application needs these secrets to function.
+
+---
+
+## Environment Variables & Secrets Explained
+
+### How Secrets Flow from GitHub to Cloud Run
+
+```
+GitHub Secrets → Workflow reads them → Passes to Cloud Run → Your app uses them
+```
+
+The workflow configuration in [`cd-backend.yaml`](cd-backend.yaml#L69-L71) does:
+
+```yaml
+env_vars: |
+  NODE_ENV=production
+  DATABASE_URL=${{ secrets.DATABASE_URL }}  # ← Reads from GitHub Secrets
+  JWT_SECRET=${{ secrets.JWT_SECRET }}      # ← Reads from GitHub Secrets
+```
+
+**Important**:
+
+- Keep secrets in **GitHub repository secrets** - the workflow needs them to configure Cloud Run
+- **Don't manually set them in GCP** - the workflow sets them automatically on each deployment
+- View them in GCP Console → Cloud Run → Service → Variables & Secrets tab (set by the workflow)
+
+### DATABASE_URL
+
+**Purpose**: Connection string for your MongoDB database.
+
+**Format for MongoDB Atlas**:
+
+```
+mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
+```
+
+**Format for self-hosted MongoDB**:
+
+```
+mongodb://username:password@host:port/database
+```
+
+**How to get it**:
+
+1. Go to [MongoDB Atlas](https://cloud.mongodb.com/) (or your MongoDB provider)
+2. Click **Connect** on your cluster
+3. Choose **Connect your application**
+4. Copy the connection string
+5. Replace `<password>` with your actual database password
+
+### JWT_SECRET
+
+**Purpose**: Secret key used to **sign and verify** JWT (JSON Web Tokens) for user authentication.
+
+**Why it's required for backend deployment**:
+
+Your backend checks for `JWT_SECRET` during startup in [`backend/src/middleware/jwt.js`](../backend/src/middleware/jwt.js#L19-L21):
+
+```javascript
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+```
+
+This check happens **before** the database connection, so the backend crashes on startup if `JWT_SECRET` is missing, even though the database itself doesn't need it.
+
+**How it works**:
+
+1. User logs in → Backend creates JWT signed with `JWT_SECRET`
+2. Frontend stores token → Sends with each request
+3. Backend verifies token using same `JWT_SECRET`
+
+**Important clarification**:
+
+- ❌ The **database** does NOT need `JWT_SECRET` - only `DATABASE_URL`
+- ✅ The **backend application** needs `JWT_SECRET` to initialize and run
+- ✅ The **frontend** never knows or uses `JWT_SECRET` - it only receives and sends the resulting tokens
+
+**Why it's critical**:
+
+- If someone gets your `JWT_SECRET`, they can create fake login tokens
+- They could impersonate any user in your system
+- **Never commit it to Git** or expose it publicly
+
+**Generate a strong secret**:
+
+```bash
+openssl rand -base64 32
+```
+
+Example output: `3K9j2nR7pQ8mF6vL1xY4wH5tE0sA9bC7dG2hJ3kM8nP=`
+
+**Why keep it consistent**:
+
+- Tokens issued in one deployment remain valid in the next
+- If you change it, **all users get logged out**
+- Only rotate it if you suspect it's been compromised
+
+### Security Considerations
+
+**Who can see these environment variables?**
+
+✅ **CAN see them:**
+
+- GCP project Owners, Editors, and Viewers
+- Anyone with Cloud Run `viewer` or `admin` IAM roles
+- They appear in: GCP Console → Cloud Run → Variables & Secrets tab
+
+❌ **CANNOT see them:**
+
+- End users visiting your website/API
+- People without GCP project access
+- GitHub Actions logs (masked as `***`)
+- Anyone accessing your application endpoints
+
+**Is this secure?**
+
+Yes, for most applications:
+
+- ✅ Standard practice - Environment variables are the recommended way to pass secrets to containers
+- ✅ Access controlled - Only people with GCP IAM permissions can view them
+- ✅ Not in code - Secrets aren't hardcoded or committed to Git
+- ✅ Not exposed publicly - Your API doesn't expose them
+
+**Best practices**:
+
+- Only grant GCP project access to trusted team members
+- Use strong, randomly generated passwords
+- Rotate secrets if you suspect compromise
+- Never log or expose secrets in application code
+
+### Alternative: GCP Secret Manager (Advanced)
+
+For **enterprise-grade security**, use GCP Secret Manager instead of environment variables.
+
+**Benefits**:
+
+- Secrets stored separately from Cloud Run service
+- Detailed audit logs of secret access
+- Fine-grained access controls per secret
+- Rotate secrets without redeploying
+
+**How to use**:
+
+1. **Store secrets in Secret Manager** (one-time setup):
+
+```bash
+# Create secrets
+echo -n "mongodb+srv://user:pass@..." | gcloud secrets create DATABASE_URL --data-file=-
+echo -n "your-jwt-secret" | gcloud secrets create JWT_SECRET --data-file=-
+
+# Grant Cloud Run service account access
+gcloud secrets add-iam-policy-binding DATABASE_URL \
+  --member="serviceAccount:cloudrun-deployer@oidc-gcp-roland-01.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+
+gcloud secrets add-iam-policy-binding JWT_SECRET \
+  --member="serviceAccount:cloudrun-deployer@oidc-gcp-roland-01.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
+2. **Update workflow** to reference secrets:
+
+```yaml
+# Replace env_vars with secrets in cd-backend.yaml
+secrets: |
+  DATABASE_URL=DATABASE_URL:latest
+  JWT_SECRET=JWT_SECRET:latest
+```
+
+The `:latest` means "use the latest version of this secret"
+
+**When to use Secret Manager**:
+
+- Multiple services need to share secrets
+- Compliance/audit requirements
+- Need to rotate secrets without redeployment
+- Enterprise environment with strict security policies
+
+**For most projects**: Environment variables (current setup) are sufficient.
 
 ---
 

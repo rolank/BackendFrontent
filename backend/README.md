@@ -17,6 +17,52 @@ Express.js backend server for the blog application with MongoDB integration and 
 
 - Node.js 22.x or later
 - npm or yarn
+- Docker (for running MongoDB locally)
+- MongoDB 8.0.11 or later (can be run via Docker)
+
+### Local Database Setup
+
+Before running the backend locally, you need a MongoDB instance. The easiest way is using Docker:
+
+**Start MongoDB container:**
+
+```bash
+docker run -d --name dbserver -p 27017:27017 --restart unless-stopped mongo:8.0.11
+```
+
+This will:
+
+- Download and run MongoDB 8.0.11 in a Docker container
+- Name the container `dbserver`
+- Expose MongoDB on port 27017 (default)
+- Restart the container automatically unless explicitly stopped
+
+**Verify MongoDB is running:**
+
+```bash
+docker ps | grep dbserver
+```
+
+**Stop MongoDB:**
+
+```bash
+docker stop dbserver
+```
+
+**Start MongoDB (if already created):**
+
+```bash
+docker start dbserver
+```
+
+**Remove MongoDB container:**
+
+```bash
+docker stop dbserver
+docker rm dbserver
+```
+
+**Note**: For production/staging environments, use a managed MongoDB service like MongoDB Atlas. See [.github/workflows/README.md](../.github/workflows/README.md#database_url) for cloud deployment configuration.
 
 ### Installation
 
@@ -30,6 +76,20 @@ Copy `.env.example` to `.env` and configure:
 
 ```bash
 cp .env.example .env
+```
+
+**For local development with Docker MongoDB**, update your `.env` file:
+
+```env
+DATABASE_URL=mongodb://localhost:27017/blog
+JWT_SECRET=your-secure-secret-key-here
+PORT=8080
+```
+
+Generate a secure JWT_SECRET:
+
+```bash
+openssl rand -base64 32
 ```
 
 Available environment files:
