@@ -29,7 +29,7 @@ export function createPostAction(queryClient) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...getAuthHeaders(),
+          ...getAuthHeaders(), // Attach JWT Authorization header if present
         },
         body: JSON.stringify({ title, contents, author }),
       });
@@ -80,7 +80,7 @@ export function updatePostAction(queryClient) {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          ...getAuthHeaders(),
+          ...getAuthHeaders(), // Attach JWT Authorization header if present
         },
         body: JSON.stringify({ title, contents, author }),
       });
@@ -119,7 +119,7 @@ export function deletePostAction(queryClient) {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          ...getAuthHeaders(),
+          ...getAuthHeaders(), // Attach JWT Authorization header if present
         },
       });
 

@@ -9,7 +9,9 @@ export function userRoutes(app) {
         return res.status(400).json({ error: "Username already exists" });
       }
       const newUser = await createUser({ username, email, password });
-      res.status(201).json(newUser);
+      // Strip passwordHash before sending response
+      const { passwordHash, ...safeUser } = newUser.toObject();
+      res.status(201).json(safeUser);
     } catch (error) {
       res.status(400).json({ error: error.message });
     }
