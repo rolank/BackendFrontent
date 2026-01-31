@@ -5,13 +5,18 @@ import { API_BASE_URL } from "../config/api.js";
 import "./SinglePostPage.css";
 
 export function SinglePostPage() {
+  // Read initial data provided by the route loader.
   const loaderData = useLoaderData();
+  // Read the post id from the URL params.
   const { postId } = useParams();
+  // Get the currently authenticated user (if any).
   const currentUser = getCurrentUser();
 
   // Use React Query with loader data as initialData
   const { data } = useQuery({
+    // Cache key scoped to the current post id.
     queryKey: ["post", postId],
+    // Fetch the latest post from the API.
     queryFn: async () => {
       const response = await fetch(`${API_BASE_URL}/posts/${postId}`, {
         headers: {
@@ -25,7 +30,9 @@ export function SinglePostPage() {
     staleTime: 1000 * 60 * 5,
   });
 
+  // Normalize the post object for rendering.
   const post = data || loaderData.post;
+  // Only the author can edit or delete the post.
   const isOwner = currentUser && currentUser.username === post.author;
 
   return (
@@ -36,11 +43,13 @@ export function SinglePostPage() {
       <article className="single-post-article">
         <h1 className="single-post-title">{post.title}</h1>
         <p className="single-post-meta">
+          {/* Author is returned as username (resolved on the backend) */}
           By {post.author} • {new Date(post.createdAt).toLocaleDateString()}
           {post.updatedAt !== post.createdAt && " (edited)"}
         </p>
         <div className="single-post-content">{post.contents}</div>
         {isOwner && (
+          // Author-only actions (edit/delete)
           <div className="single-post-actions">
             <Link
               to={`/posts/${post._id || post.id}/edit`}

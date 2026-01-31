@@ -28,6 +28,7 @@ async function listPosts(
     { $match: query },
     { $sort: { [sortBy]: sortOrder === "descending" ? -1 : 1 } },
     {
+      // Resolve the `author` ObjectId into a displayable username.
       $lookup: {
         from: "users", // collection name in MongoDB
         localField: "author",
@@ -36,7 +37,7 @@ async function listPosts(
       },
     },
     { $set: { author: { $arrayElemAt: ["$authorDetails.username", 0] } } },
-    { $project: { authorDetails: 0 } }, // Remove authorDetails field 
+    { $project: { authorDetails: 0 } }, // Remove authorDetails field
   ]);
 }
 
@@ -53,7 +54,16 @@ export async function listPostsByTag(tags, options) {
 }
 
 export async function getPostById(postId) {
-  return await Post.findById(postId);
+  // Populate the author field to resolve ObjectId to username for display.
+  const post = await Post.findById(postId).populate("author", "username");
+  if (!post) return null;
+
+  // Convert to plain object and normalize author to username string.
+  const postObj = post.toObject();
+  return {
+    ...postObj,
+    author: postObj.author?.username || postObj.author,
+  };
 }
 
 export async function updatePost(postId, { title, author, contents, tags }) {

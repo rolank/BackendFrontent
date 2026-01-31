@@ -56,6 +56,7 @@ export function postsRoutes(app) {
       res.json(post);
     } catch (err) {
       console.error("Error fetching post by ID:", err);
+      console.error("Error stack:", err.stack);
       res.status(500).send("Internal Server Error");
     }
   });
