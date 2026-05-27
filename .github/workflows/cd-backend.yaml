@@ -1,18 +1,27 @@
 name: Backend Continuous Deployment to GCP Cloud Run
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["Blog Backend CI"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch: {}
 
 permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: backend-production
+  cancel-in-progress: true
+
 jobs:
   deploy:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment:
       name: production
       url: ${{ steps.deploy-to-cloud-run.outputs.url }}
@@ -26,9 +35,11 @@ jobs:
       WIF_SA: cloudrun-deployer@oidc-gcp-roland-01.iam.gserviceaccount.com
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      # Authenticate to Google Cloud
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
@@ -40,11 +51,13 @@ jobs:
         with:
           project_id: ${{ env.PROJECT_ID }}
 
-      # Build and Push Image to Artifact Registry
       - name: Build and Push Image to Artifact Registry
         run: |
-          IMAGE="us-central1-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:${GITHUB_SHA}"
-          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+          set -euo pipefail
+
+          COMMIT_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          IMAGE="us-central1-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:${COMMIT_SHA}"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
 
           gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
@@ -56,7 +69,6 @@ jobs:
 
           docker push "$IMAGE"
 
-      # Deploy to Cloud Run
       - name: Deploy to Cloud Run
         id: deploy-to-cloud-run
         uses: google-github-actions/deploy-cloudrun@v1

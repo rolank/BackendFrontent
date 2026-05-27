@@ -3,9 +3,17 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yaml"
+      - ".github/workflows/cd-backend.yaml"
   pull_request:
     branches:
       - main
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yaml"
+      - ".github/workflows/cd-backend.yaml"
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
@@ -26,4 +34,5 @@ jobs:
         run: npm install
       - name: Run tests on Backend
         run: npm test
-
+      - name: Run backend smoke tests
+        run: npm run test:smoke

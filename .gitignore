@@ -139,9 +139,11 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# Playwright MCP output
+.playwright-mcp/
+
 # Word files
 *.doc
 *.docx
 *~lock.*.doc*
-
 

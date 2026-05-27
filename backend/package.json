@@ -9,6 +9,7 @@
   "scripts": {
     "test": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest",
     "test:integration": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest src/__tests__/endpoints.integration.test.js",
+    "test:smoke": "playwright test --config=playwright.config.js",
     "start": "NODE_ENV=production node src/index.js",
     "dev": "NODE_ENV=development nodemon src/index.js",
     "staging": "NODE_ENV=staging node src/index.js"
@@ -25,6 +26,7 @@
     "mongoose": "^9.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.2",
     "@eslint/js": "^9.39.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react": "^7.37.5",
