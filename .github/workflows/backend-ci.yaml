@@ -1,8 +1,12 @@
+# Display name in GitHub Actions UI.
 name: Blog Backend CI
+
+# Run backend checks on changes to backend code/workflows.
 on:
   push:
     branches:
       - main
+    # Only run when backend or relevant workflow files changed.
     paths:
       - "backend/**"
       - ".github/workflows/backend-ci.yaml"
@@ -10,29 +14,38 @@ on:
   pull_request:
     branches:
       - main
+    # Same path filter for pull requests targeting main.
     paths:
       - "backend/**"
       - ".github/workflows/backend-ci.yaml"
       - ".github/workflows/cd-backend.yaml"
+
 jobs:
+  # Main CI job: install dependencies and run tests.
   lint-and-test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        # Validate backend against supported Node LTS/current versions.
         node-version: [18.x, 20.x, 22.x]
     defaults:
       run:
+        # All shell commands run from backend folder by default.
         working-directory: ./backend
     steps:
+      # Pull repository code onto the runner.
       - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          # Cache npm dependencies between runs for speed.
           cache: "npm"
       - name: Install dependencies
         run: npm install
+      # Existing Jest suite.
       - name: Run tests on Backend
         run: npm test
+      # Playwright API smoke checks.
       - name: Run backend smoke tests
         run: npm run test:smoke

@@ -16,35 +16,33 @@ jobs:
       url: ${{ steps.deploy-to-cloud-run.outputs.url }}
 
     env:
-      PROJECT_ID: oidc-gcp-roland-01
+      PROJECT_ID: 'oidc-github-01'
       DOCKER_USERNAME: ${{ secrets.DOCKERHUB_LOR2P }}
       DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
       FRONTEND_IMAGE: blog-frontend
-      PROJECT_NUMBER: "591006590099"
-      workload_identity_pool: my-github-pool
-      WIF_PROVIDER: "projects/591006590099/locations/global/workloadIdentityPools/my-github-pool/providers/my-github-provider"
-      WIF_SA: cloudrun-deployer@oidc-gcp-roland-01.iam.gserviceaccount.com
+      PROJECT_NUMBER: "1010347128743"
+      WIF_PROVIDER: "projects/1010347128743/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
+      WIF_SA: 'cloudrun-deployer@oidc-github-01.iam.gserviceaccount.com'
 
     steps:
       - uses: actions/checkout@v4
-      # Docker Hub Login
+      # Define and log in to Docker Hub using credentials stored in GitHub Secrets.
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v4
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
-      # Authenticate to GCP authentication using Workload Identity Federation
+      # Authenticate to GCP using Workload Identity Federation
       - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ env.WIF_PROVIDER }}
-          service_account: ${{ env.WIF_SA }}
-      # Configure gcloud CLI
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+        uses: google-github-actions/auth@v3
         with:
           project_id: ${{ env.PROJECT_ID }}
-          install_components: "gke-gcloud-auth-plugin"
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SA }}
+      # Explicitly configure =s the environment to handle gcloud commands safely in the GitHub Actions runner context.
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+    
       # Build and Push Docker Image to Docker Hub
       - name: Build and Push Docker Image
         run: |
