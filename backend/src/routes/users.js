@@ -1,5 +1,8 @@
 import { createUser, findByUserName, loginUser } from "../services/users.js";
 
+// This file defines the user-related routes for the Express application.
+// It includes routes for user signup, login, and fetching user details by username.
+
 export function userRoutes(app) {
   app.post("/api/v1/user/signup", async (req, res) => {
     try {
