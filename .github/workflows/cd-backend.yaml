@@ -108,7 +108,6 @@ jobs:
           env_vars: |
             NODE_ENV=production
             JWT_EXPIRES_IN=${{ vars.JWT_EXPIRES_IN }}
-            MONGO_DB_NAME=blog_prod_db
 
           # 3. CRYPTOGRAPHICALLY SECURE SECRETS (Mounted straight from GCP Secret Manager)
           # Syntax: APP_ENV_NAME=SECRET_NAME_IN_GCP:VERSION
