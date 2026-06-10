@@ -60,7 +60,7 @@ jobs:
         run: |
           set -euo pipefail
           COMMIT_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
-          IMAGE="${DOCKER_USERNAME}/${IMAGE_NAME}:${COMMIT_SHA}"
+          IMAGE="${{secrets.DOCKERHUB_USERNAME}}/${IMAGE_NAME}:${COMMIT_SHA}"
           echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
           echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
           docker build --platform linux/amd64 -t "$IMAGE" -f backend/Dockerfile backend
