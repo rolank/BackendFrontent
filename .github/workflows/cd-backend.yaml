@@ -107,7 +107,7 @@ jobs:
           # 2. NON-SENSITIVE ENVIRONMENT VARIABLES
           env_vars: |
             NODE_ENV=production
-            JWT_EXPIRES_IN=${{ vars.JWT_EXPIRES_IN }}
+            JWT_EXPIRES_IN=7d # Example of a non-sensitive env var that can be set directly here.
 
           # 3. CRYPTOGRAPHICALLY SECURE SECRETS (Mounted straight from GCP Secret Manager)
           # Syntax: APP_ENV_NAME=SECRET_NAME_IN_GCP:VERSION
