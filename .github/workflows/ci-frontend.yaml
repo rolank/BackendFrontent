@@ -1,4 +1,4 @@
-name: Blog Frontend CI
+name: Continuous Integration of Blog Frontend on Google Cloud Run
 on:
   push:
     branches:
@@ -23,4 +23,5 @@ jobs:
         run: npm install
       - name: Build Frontend
         run: npm run build
+        
    

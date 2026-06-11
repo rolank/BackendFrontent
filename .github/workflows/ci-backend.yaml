@@ -1,5 +1,5 @@
 # Display name in GitHub Actions UI.
-name: Blog Backend CI
+name: Continuous Integration of Blog Backend on Google Cloud Run
 
 # Run backend checks on changes to backend code/workflows.
 on:
@@ -9,7 +9,7 @@ on:
     # Only run when backend or relevant workflow files changed.
     paths:
       - "backend/**"
-      - ".github/workflows/backend-ci.yaml"
+      - ".github/workflows/ci-backend.yaml"
       - ".github/workflows/cd-backend.yaml"
   pull_request:
     branches:
@@ -17,7 +17,7 @@ on:
     # Same path filter for pull requests targeting main.
     paths:
       - "backend/**"
-      - ".github/workflows/backend-ci.yaml"
+      - ".github/workflows/ci-backend.yaml"
       - ".github/workflows/cd-backend.yaml"
 
 jobs:

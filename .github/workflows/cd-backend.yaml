@@ -1,11 +1,11 @@
 # Display name in GitHub Actions UI.
-name: Backend Continuous Deployment to GCP Cloud Run
+name: Continuous Deployment of Backend to Google Cloud Run
 
 # Trigger deploy after backend CI completes on main, or manually.
 on:
   workflow_run:
     # Upstream workflow name to watch.
-    workflows: ["Blog Backend CI"]
+    workflows: ["Continuous Integration of Blog Backend on Google Cloud Run"]
     # Trigger when the upstream workflow finishes.
     types: [completed]
     # Only when that run is for main branch commits.
@@ -102,7 +102,7 @@ jobs:
           region: ${{ env.GCP_REGION }}
           image: ${{ steps.build-image.outputs.image }}
           
-          flags: "--allow-unauthenticated --service-account=${{ env.GCP_RUNTIME_SA }}"
+          flags: "--service-account=${{ env.GCP_RUNTIME_SA }}"
 
           # 2. NON-SENSITIVE ENVIRONMENT VARIABLES
           env_vars: |
