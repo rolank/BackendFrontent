@@ -52,7 +52,7 @@ jobs:
           echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
           echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
           docker build --platform linux/amd64 \
-            --build-arg "VITE_BACKEND_URL=${{ env.VITE_BACKEND_URL }}" \
+            --build-arg "BUILD_ARG_BACKEND_URL=${{ env.VITE_BACKEND_URL }}" \
             -t "$IMAGE" -f Dockerfile .
 
       # Define and log in to Docker Hub using credentials stored in GitHub Secrets.
