@@ -44,7 +44,7 @@
 - Keep React Query cache keys aligned with the existing conventions:
   - posts list: `["posts", { author, sortBy, sortOrder }]`
   - single post: `["post", postId]`
-  Mutations are expected to invalidate or remove those exact keys.
+    Loaders use those exact keys; mutations currently invalidate the broader `["posts"]` prefix for list refreshes and the exact `["post", postId]` key for single-post refresh/removal.
 - Do not hardcode API URLs in components or helpers; import `API_BASE_URL` from `src/config/api.js`.
 - Keep backend layers separated the same way the current code does:
   - `backend/src/routes/`: HTTP parsing/validation/response handling

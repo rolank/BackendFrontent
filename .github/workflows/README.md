@@ -1,278 +1,171 @@
-# GitHub Workflows Documentation
+# GitHub Workflows
 
-This directory contains GitHub Actions workflows that automate Continuous Integration (CI) and Continuous Deployment (CD) processes for the Blog application. Below is a detailed explanation of each workflow file.
+This directory documents the current GitHub Actions setup for the project. The workflows run CI for frontend and backend, build commit-tagged Docker images, push them to Docker Hub, and deploy the images to Google Cloud Run using Workload Identity Federation.
 
----
+## Workflow Files
 
-## 📋 Table of Contents
+- `ci-backend.yaml`
+- `ci-frontend.yaml`
+- `cd-backend.yaml`
+- `cd-frontend.yaml`
 
-1. [backend-ci.yaml](#backend-ciyaml)
-2. [frontend-ci.yaml](#frontend-ciyaml)
-3. [cd-backend.yaml](#cd-backendyaml)
-4. [cd-frontend.yaml](#cd-frontendyaml)
+## Current Deployment Model
 
----
+### Shared Characteristics
 
-## backend-ci.yaml
+- Deploy target: Google Cloud Run
+- GCP project: `oidc-github-01`
+- Region: `us-central1`
+- Auth to GCP: GitHub OIDC via Workload Identity Federation
+- Image registry for built app images: Docker Hub
+- Tagging strategy: commit SHA
 
-### Purpose
+### GCP Identities
 
-Continuous Integration pipeline for the backend Node.js application. This workflow automatically runs tests whenever code is pushed to the `main` branch or when pull requests are created.
+- Workload Identity Provider:
+  `projects/1010347128743/locations/global/workloadIdentityPools/github-pool/providers/github-provider`
+- Deployer service account:
+  `cloudrun-deployer@oidc-github-01.iam.gserviceaccount.com`
 
-### Trigger Events
+## `ci-backend.yaml`
 
-- **Push to main branch**: Automatically runs when commits are pushed to the main branch
-- **Pull requests to main branch**: Automatically runs when a pull request is opened or updated targeting the main branch
+Purpose:
 
-### Matrix Strategy
+- Run backend validation on backend changes and backend workflow changes.
 
-The workflow uses a **Node.js version matrix** to test against multiple Node versions:
+Current behavior:
 
-- Node.js 18.x
-- Node.js 20.x
-- Node.js 22.x
+- Triggers on push and pull request to `main`
+- Uses path filters for `backend/**` and backend workflow files
+- Runs in `backend/`
+- Matrix: Node `22.x`, `24.x`
+- Executes:
+  - `npm install`
+  - `npm test`
+  - `npm run test:smoke`
 
-This ensures the backend is compatible across different Node.js versions. Each combination creates a separate job instance.
+## `ci-frontend.yaml`
 
-### Working Directory
+Purpose:
 
-- **Location**: `./backend` - All commands run from the backend directory
+- Run frontend build validation on pushes and pull requests to `main`.
 
-### Key Steps
+Current behavior:
 
-1. **Checkout Code**
+- Triggers on push and pull request to `main`
+- Matrix: Node `18.x`, `20.x`, `22.x`
+- Executes:
+  - `npm install`
+  - `npm run build`
 
-   - Uses `actions/checkout@v4` to pull the repository code into the runner
+## `cd-backend.yaml`
 
-2. **Setup Node.js**
+Purpose:
 
-   - Uses `actions/setup-node@v4` to install the specified Node.js version
-   - Enables npm caching to speed up dependency installation
-   - `cache: "npm"` caches node_modules and npm package-lock files between runs
+- Deploy the backend after successful backend CI, or manually through `workflow_dispatch`.
 
-3. **Install Dependencies**
+Current flow:
 
-   - Runs `npm install` to install all project dependencies defined in `package.json`
+1. Checkout the exact commit that passed CI.
+2. Build backend image from `backend/Dockerfile`.
+3. Tag image as `<dockerhub-username>/blog-backend:<commit-sha>`.
+4. Log in to Docker Hub.
+5. Push the image.
+6. Authenticate to GCP with `google-github-actions/auth@v3`.
+7. Deploy the pushed image to Cloud Run with `google-github-actions/deploy-cloudrun@v3`.
 
-4. **Run Tests**
-   - Executes `npm test` to run the test suite (likely Jest tests based on the project structure)
-   - This validates that the code changes don't break existing functionality
+Cloud Run backend settings applied by the workflow:
 
-### Success/Failure
+- Service: `blog-backend-service`
+- Runtime service account: `blog-backend-runtime@oidc-github-01.iam.gserviceaccount.com`
+- Env vars:
+  - `NODE_ENV=production`
+  - `JWT_EXPIRES_IN=7d`
+- Secrets from GCP Secret Manager:
+  - `DATABASE_URL=MONGODB_URI:latest`
+  - `JWT_SECRET=JWT_SECRET:latest`
 
-- The workflow **passes** only if all steps complete successfully
-- If any step fails, the workflow is marked as failed and notifications are sent
-- Pull requests will show the CI status, blocking merges if the workflow fails
+## `cd-frontend.yaml`
 
----
+Purpose:
 
-## frontend-ci.yaml
+- Deploy the frontend after successful frontend CI, or manually through `workflow_dispatch`.
 
-### Purpose
+Current flow:
 
-Continuous Integration pipeline for the React frontend application. This workflow validates that the frontend can successfully build without errors whenever code is pushed or pull requests are created.
+1. Checkout the exact commit that passed CI.
+2. Build frontend image from the root `Dockerfile`.
+3. Pass `BUILD_ARG_BACKEND_URL` during the Docker build so Vite bakes the backend URL into the bundle.
+4. Tag image as `<dockerhub-username>/blog-frontend:<commit-sha>`.
+5. Log in to Docker Hub.
+6. Push the image.
+7. Authenticate to GCP.
+8. Deploy the pushed image to Cloud Run.
 
-### Trigger Events
+Cloud Run frontend settings applied by the workflow:
 
-- **Push to main branch**: Automatically runs when commits are pushed to the main branch
-- **Pull requests to main branch**: Automatically runs when a pull request is opened or updated targeting the main branch
+- Service: `blog-frontend-service`
+- Runtime service account: `blog-backend-runtime@oidc-github-01.iam.gserviceaccount.com`
+- Build-time backend URL:
+  `https://blog-backend-service-1010347128743.us-central1.run.app/api/v1`
 
-### Matrix Strategy
+Important:
 
-Similar to the backend, this workflow tests against multiple Node.js versions:
+- The frontend API URL is baked into the JS bundle at image build time.
+- If the backend URL changes, the frontend image must be rebuilt and redeployed.
+- The correct Docker build arg name is `BUILD_ARG_BACKEND_URL` because the root `Dockerfile` expects `ARG BUILD_ARG_BACKEND_URL`.
 
-- Node.js 18.x
-- Node.js 20.x
-- Node.js 22.x
+## Required GitHub Configuration
 
-This ensures the frontend build process works consistently across different Node versions.
+### Repository Variables
 
-### Environment
+- `DOCKERHUB_USERNAME`
 
-Runs on `ubuntu-latest` - a GitHub-hosted Linux runner with common development tools pre-installed
+### Repository Secrets
 
-### Key Steps
+- `DOCKERHUB_TOKEN`
 
-1. **Checkout Code**
+### GCP Secrets Referenced at Deploy Time
 
-   - Uses `actions/checkout@v4` to fetch the repository code
+These are not GitHub secrets. They are Secret Manager secrets referenced by Cloud Run deployment:
 
-2. **Setup Node.js**
+- `MONGODB_URI`
+- `cd-backend.yaml` listens for the workflow named `Continuous Integration of Blog Backend on Google Cloud Run`
+- `cd-frontend.yaml` listens for the workflow named `Continuous Integration of Blog Frontend on Google Cloud Run`
 
-   - Uses `actions/setup-node@v4` to install the specified Node.js version
-   - Enables npm caching for faster dependency installation
-   - `cache: 'npm'` caches npm dependencies between workflow runs
+That means the workflow `name:` field matters. If a CI workflow is renamed, its matching CD workflow must be updated too.
 
-3. **Install Dependencies**
+- `cd-frontend.yaml` passes `BUILD_ARG_BACKEND_URL`
+- The value points to `/api/v1`
+- A new frontend image was built after the change
 
-   - Runs `npm install` to install all frontend dependencies
-   - Includes React, Vite, React Query, and other packages defined in `package.json`
+### Backend fails on startup in Cloud Run
 
-4. **Build Frontend**
-   - Executes `npm run build` which runs the Vite build process
-   - Creates an optimized production build in the `dist/` directory
-   - Validates that no build errors or warnings prevent successful compilation
+Check:
 
-### Success Criteria
+- `JWT_SECRET` exists in GCP Secret Manager
+- `MONGODB_URI` exists in GCP Secret Manager
+- `DATABASE_URL` resolves to a reachable MongoDB instance
 
-- The workflow passes if the build completes without errors
-- Failed builds block pull requests from being merged
-- Build artifacts are not uploaded; this workflow only validates build success
+Check:
 
----
+| Workflow           | Purpose         | Trigger                                    | Main Checks / Actions                                           |
+| ------------------ | --------------- | ------------------------------------------ | --------------------------------------------------------------- |
+| `ci-backend.yaml`  | Backend CI      | Push/PR to `main` with backend path filter | Install, Jest tests, smoke tests                                |
+| `ci-frontend.yaml` | Frontend CI     | Push/PR to `main`                          | Install, frontend build                                         |
+| `cd-backend.yaml`  | Backend deploy  | Successful backend CI or manual            | Build, push to Docker Hub, deploy to Cloud Run                  |
+| `cd-frontend.yaml` | Frontend deploy | Successful frontend CI or manual           | Build with backend URL, push to Docker Hub, deploy to Cloud Run |
 
-## cd-backend.yaml
+- Generates temporary OIDC tokens for secure GCP access
+- No sensitive credentials are exposed
 
-### Purpose
-
-Continuous Deployment pipeline that automatically builds and deploys the backend application to **Google Cloud Run** when code is pushed to the main branch. This is the production deployment workflow for the backend service.
-
-### Trigger Events
-
-- **Push to main branch**: Automatically deploys when commits are pushed to main
-- **Manual trigger**: `workflow_dispatch` allows manual deployment via GitHub UI without code changes
-
-### Deployment Environment
-
-- **Target**: Google Cloud Run (serverless container platform)
-- **Project**: `oidc-gcp-roland-01`
-- **Region**: `us-central1`
-- **Service Name**: `blog-backend-service`
-
-### Security & Authentication
-
-- Uses **Workload Identity Federation** (WIF) for secure authentication to GCP
-- Requires `id-token: write` permission to generate OIDC tokens
-- No long-lived credentials are stored; authentication is temporary and automatic
-- **Service Account**: `cloudrun-deployer@oidc-gcp-roland-01.iam.gserviceaccount.com` handles the deployment
-
-### Environment Variables
-
-All key configuration values are stored as environment variables:
-
-- `PROJECT_ID`: GCP project identifier
-- `PROJECT_NUMBER`: GCP project number
-- `REGION`: Deployment region
-- `REPOSITORY`: Artifact Registry repository name (`blog`)
-- `IMAGE_NAME`: Docker image name (`blog-backend`)
-- `WIF_PROVIDER`: Workload Identity Pool provider path
-- `WIF_SA`: Service account email for deployment
-
-### Key Steps
-
-1. **Checkout Code**
-
-   - Uses `actions/checkout@v4` to fetch the latest backend code
-
-2. **Authenticate to GCP**
-
-   - Uses `google-github-actions/auth@v2` with Workload Identity Federation
-   - Generates temporary credentials without storing secrets
-   - Securely authenticates to Google Cloud
-
-3. **Set Up Cloud SDK**
-
-   - Uses `google-github-actions/setup-gcloud@v2` to initialize gcloud CLI
-   - Configures the SDK to interact with the GCP project
-
-4. **Build and Push Docker Image**
-
-   - Configures Docker authentication to Google Artifact Registry
-   - Builds a Docker image from `backend/Dockerfile` with the platform `linux/amd64`
-   - Tags the image with: `us-central1-docker.pkg.dev/{PROJECT_ID}/{REPOSITORY}/{IMAGE_NAME}:{GITHUB_SHA}`
-   - The `GITHUB_SHA` tag ensures each deployment has a unique, traceable version
-   - Pushes the image to Google Artifact Registry for storage
-
-5. **Deploy to Cloud Run**
-   - Uses `google-github-actions/deploy-cloudrun@v1` to deploy the container
-   - Deploys the image to the `blog-backend-service`
-   - Configuration:
-     - `--allow-unauthenticated`: Makes the API publicly accessible (no authentication required)
-   - Returns the deployment URL in step outputs for verification
-
-### Deployment Flow
-
-```
-Code Pushed to Main → Build Docker Image → Push to Artifact Registry → Deploy to Cloud Run
-```
-
-### Rollback
-
-If a deployment fails, the previous version remains running on Cloud Run. You can manually rollback through the Cloud Run console.
-
----
-
-## cd-frontend.yaml
-
-### Purpose
-
-Continuous Deployment pipeline that builds and deploys the React frontend to **Google Cloud Run**. The frontend is containerized with Docker and pushed to Docker Hub before deployment.
-
-### Trigger Events
-
-- **Push to main branch**: Automatically deploys when commits are merged to main
-- **Manual trigger**: `workflow_dispatch` allows manual deployments through GitHub UI
-
-### Deployment Environment
-
-- **Target**: Google Cloud Run
-- **Project**: `oidc-gcp-roland-01`
-- **Service Name**: `blog-frontend-service`
-- **Region**: Retrieved from GitHub secrets (`GOOGLECLOUD_REGION`)
-- **Docker Registry**: Docker Hub (using DockerHub credentials)
-
-### Authentication & Secrets
-
-Uses two authentication methods:
-
-1. **Docker Hub Authentication**
-
-   - `DOCKER_USERNAME`: Retrieved from `secrets.DOCKERHUB_LOR2P`
-   - `DOCKER_PASSWORD`: Retrieved from `secrets.DOCKERHUB_TOKEN`
-   - Credentials must be stored in GitHub repository secrets
-
-2. **GCP Authentication**
-   - Uses Workload Identity Federation (WIF) with OIDC tokens
-   - Service Account: `cloudrun-deployer@oidc-gcp-roland-01.iam.gserviceaccount.com`
-   - No long-lived credentials stored
-
-### Environment Variables
-
-- `PROJECT_ID`: GCP project ID
-- `FRONTEND_IMAGE`: Docker image name (`blog-frontend`)
-- `PROJECT_NUMBER`: GCP project number
-- `WIF_PROVIDER`: Workload Identity Pool provider
-- `WIF_SA`: Service account for deployment
-
-### Key Steps
-
-1. **Checkout Code**
-
-   - Uses `actions/checkout@v4` to fetch the latest frontend code
-
-2. **Log in to Docker Hub**
-
-   - Uses `docker/login-action@v2` to authenticate with Docker Hub
-   - Logs in using credentials stored in GitHub secrets
-   - Allows pushing images to the personal Docker Hub registry
-
-3. **Authenticate to GCP**
-
-   - Uses `google-github-actions/auth@v2` with Workload Identity Federation
-   - Generates temporary OIDC tokens for secure GCP access
-   - No sensitive credentials are exposed
-
-4. **Set Up Cloud SDK**
-
-   - Uses `google-github-actions/setup-gcloud@v2` to configure gcloud CLI
-   - Installs `gke-gcloud-auth-plugin` for Kubernetes integration (if needed)
+- Installs `gke-gcloud-auth-plugin` for Kubernetes integration (if needed)
 
 5. **Build and Push Docker Image**
 
    - Builds a Docker image from the root `Dockerfile` with platform `linux/amd64`
    - **Build argument**: `BUILD_ARG_BACKEND_URL`
      - Points to the backend API: `https://blog-backend-service-591006590099.us-central1.run.app/api/v1`
-     - Baked into the frontend at build time so the frontend knows where to call the API
    - Tags image as: `{DOCKER_USERNAME}/{FRONTEND_IMAGE}:latest`
    - Pushes to Docker Hub for centralized image storage
    - The `latest` tag is used; previous versions are retained in Docker Hub history
@@ -287,11 +180,8 @@ Uses two authentication methods:
      - `allow_unauthenticated`: `true` (publicly accessible)
    - Returns the deployment URL
 
-### Deployment Flow
-
 ```
 Code Pushed to Main → Build Docker Image → Push to Docker Hub → Deploy to Cloud Run
-```
 
 ### Backend Integration
 
@@ -299,7 +189,6 @@ The frontend build includes the backend API URL via the `BUILD_ARG_BACKEND_URL` 
 
 - The frontend is built with the production backend URL hardcoded
 - All API calls from the frontend will go to the production backend service
-- No environment variables needed at runtime; the URL is baked into the build
 
 ---
 
@@ -314,38 +203,27 @@ The frontend build includes the backend API URL via the `BUILD_ARG_BACKEND_URL` 
 
 ---
 
-## Secrets Required
-
-For the deployment workflows to function, ensure these GitHub repository secrets are configured:
 
 ### For `cd-frontend.yaml`:
 
 - `DOCKERHUB_LOR2P`: Docker Hub username
-- `DOCKERHUB_TOKEN`: Docker Hub access token
-- `GOOGLECLOUD_REGION`: GCP region (e.g., `us-central1`)
-
 ### For `cd-backend.yaml`:
 
 - `DATABASE_URL`: MongoDB connection string (e.g., `mongodb+srv://username:password@cluster.mongodb.net/database`)
 - `JWT_SECRET`: Secret key for JWT token signing (generate with `openssl rand -base64 32`)
 
-**Note**: While Workload Identity Federation handles GCP authentication, your backend application needs these secrets to function.
 
 ---
 
-## Environment Variables & Secrets Explained
 
 ### How Secrets Flow from GitHub to Cloud Run
 
 ```
-GitHub Secrets → Workflow reads them → Passes to Cloud Run → Your app uses them
-```
 
+GitHub Secrets → Workflow reads them → Passes to Cloud Run → Your app uses them
 The workflow configuration in [`cd-backend.yaml`](cd-backend.yaml#L69-L71) does:
 
 ```yaml
-env_vars: |
-  NODE_ENV=production
   DATABASE_URL=${{ secrets.DATABASE_URL }}  # ← Reads from GitHub Secrets
   JWT_SECRET=${{ secrets.JWT_SECRET }}      # ← Reads from GitHub Secrets
 ```
@@ -355,25 +233,18 @@ env_vars: |
 - Keep secrets in **GitHub repository secrets** - the workflow needs them to configure Cloud Run
 - **Don't manually set them in GCP** - the workflow sets them automatically on each deployment
 - View them in GCP Console → Cloud Run → Service → Variables & Secrets tab (set by the workflow)
-
-### DATABASE_URL
-
-**Purpose**: Connection string for your MongoDB database.
+  **Purpose**: Connection string for your MongoDB database.
 
 **Format for MongoDB Atlas**:
 
 ```
-mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
-```
-
 **Format for self-hosted MongoDB**:
 
 ```
+
 mongodb://username:password@host:port/database
-```
 
-**How to get it**:
-
+````
 1. Go to [MongoDB Atlas](https://cloud.mongodb.com/) (or your MongoDB provider)
 2. Click **Connect** on your cluster
 3. Choose **Connect your application**
@@ -392,7 +263,7 @@ Your backend checks for `JWT_SECRET` during startup in [`backend/src/middleware/
 if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required");
 }
-```
+````
 
 This check happens **before** the database connection, so the backend crashes on startup if `JWT_SECRET` is missing, even though the database itself doesn't need it.
 

@@ -1,266 +1,123 @@
 # Blog Backend API
 
-Express.js backend server for the blog application with MongoDB integration and comprehensive test coverage.
+Express 5 API for posts and users, backed by MongoDB via Mongoose. The backend is deployed to Google Cloud Run and uses JWT authentication for protected post mutations.
 
-## Features
+## Runtime Overview
 
-- RESTful API for blog posts and user management
-- MongoDB integration with Mongoose
-- JWT authentication (ready for implementation)
-- Comprehensive Jest test suite with in-memory database
-- CORS enabled for frontend integration
-- Environment-based configuration (development, staging, production, test)
+- Node.js backend with ES modules
+- MongoDB via Mongoose
+- JWT auth via `express-jwt`
+- Public auth routes for login and signup
+- Protected create, update, and delete post routes
+- Node.js 22+
+- npm
+- Docker or another reachable MongoDB instance
 
-## Getting Started
+### Install
 
-### Prerequisites
+npm install
 
-- Node.js 22.x or later
-- npm or yarn
-- Docker (for running MongoDB locally)
-- MongoDB 8.0.11 or later (can be run via Docker)
+````
 
-### Local Database Setup
-
-Before running the backend locally, you need a MongoDB instance. The easiest way is using Docker:
-
-**Start MongoDB container:**
+### Start MongoDB
 
 ```bash
 docker run -d --name dbserver -p 27017:27017 --restart unless-stopped mongo:8.0.11
-```
+````
 
-This will:
+### Local Environment
 
-- Download and run MongoDB 8.0.11 in a Docker container
-- Name the container `dbserver`
-- Expose MongoDB on port 27017 (default)
-- Restart the container automatically unless explicitly stopped
+Create `backend/.env` with values similar to:
 
-**Verify MongoDB is running:**
-
-```bash
-docker ps | grep dbserver
-```
-
-**Stop MongoDB:**
-
-```bash
-docker stop dbserver
-```
-
-**Start MongoDB (if already created):**
-
-```bash
-docker start dbserver
-```
-
-**Remove MongoDB container:**
-
-```bash
-docker stop dbserver
-docker rm dbserver
-```
-
-**Note**: For production/staging environments, use a managed MongoDB service like MongoDB Atlas. See [.github/workflows/README.md](../.github/workflows/README.md#database_url) for cloud deployment configuration.
-
-### Installation
-
-```bash
-npm install
-```
-
-### Environment Setup
-
-Copy `.env.example` to `.env` and configure:
-
-```bash
-cp .env.example .env
-```
-
-**For local development with Docker MongoDB**, update your `.env` file:
-
-```env
+```dotenv
+NODE_ENV=development
 DATABASE_URL=mongodb://localhost:27017/blog
-JWT_SECRET=your-secure-secret-key-here
 PORT=8080
+JWT_SECRET=replace-me
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=http://localhost:5173
 ```
 
-Generate a secure JWT_SECRET:
+Notes:
 
-```bash
-openssl rand -base64 32
-```
+- `JWT_SECRET` is required during backend startup.
+- `JWT_EXPIRES_IN` is currently used as a duration string such as `7d`.
+- `DATABASE_URL` controls which MongoDB database is used. The app does not currently consume a separate `MONGO_DB_NAME` variable.
 
-Available environment files:
+### Start the Server
 
-- `.env` - Default/local development
-- `.env.development` - Development environment
-- `.env.production` - Production environment (GCP)
-- `.env.staging` - Staging environment
-- `.env.test` - Test environment
+````
 
-### Running the Application
-
-**Development:**
-
-```bash
-npm run dev
-```
-
-**Production:**
+Other modes:
 
 ```bash
 npm start
-```
-
-**Staging:**
-
-```bash
 npm run staging
-```
+````
 
-### Running Tests
-
-**Run all tests:**
-
-```bash
-npm run test
-```
-
-**Run tests in watch mode:**
-
-```bash
-npm run test -- --watch
-```
-
-**Run specific test file:**
-
-```bash
-npm run test -- posts.test.js
-```
-
-**Run with coverage:**
-
-```bash
-npm run test -- --coverage
-```
-
-For detailed information about the test architecture, see [TESTING.md](./TESTING.md).
-
-## Project Structure
-
-```
-src/
-├── app.js                 # Express app configuration
-├── index.js              # Server entry point
-├── config/
-│   └── env.js           # Environment configuration loader
-├── db/
-│   ├── init.js          # Database initialization
-│   └── models/          # Mongoose models
-│       ├── post.js
-│       └── user.js
-├── services/            # Business logic
-│   ├── posts.js
-│   └── users.js
-├── routes/              # API routes
-│   ├── posts.js
-│   └── users.js
-└── test/                # Test configuration
-    ├── globalSetup.js
-    ├── globalTeardown.js
-    └── setupFileAfterEnv.js
-__tests__/
-└── posts.test.js        # Test files
-```
-
-## API Endpoints
+## API Surface
 
 ### Posts
 
-- `GET /api/v1/posts` - Get all posts (with filtering/sorting)
-- `POST /api/v1/posts` - Create a new post
-- `GET /api/v1/posts/:id` - Get a specific post
-- `PUT /api/v1/posts/:id` - Update a post
-- `DELETE /api/v1/posts/:id` - Delete a post
+- `GET /api/v1/posts`
+- `GET /api/v1/posts/:id`
+- `POST /api/v1/posts` (JWT required)
+- `PATCH /api/v1/posts/:id` (JWT required)
+- `DELETE /api/v1/posts/:id` (JWT required)
+- `sortBy`
+- `sortOrder`
 
-### Users
+- `GET /api/v1/user/:id`
 
-- `GET /api/v1/users/:username` - Get user by username
-- `POST /api/v1/users` - Create a new user
-- `DELETE /api/v1/users/:username` - Delete a user
+## Auth Model
 
-## Database
+- JWTs are signed with `JWT_SECRET` and expire according to `JWT_EXPIRES_IN`.
+- Frontend stores the returned bearer token and sends it on protected requests.
 
-### Development & Testing
+npm run test:integration
+npm run test:smoke
 
-Uses MongoDB (local or Atlas connection depending on `.env` settings).
+````
 
-### Test Environment
+Test setup details:
 
-Automatically uses in-memory MongoDB instance via `mongodb-memory-server`. No external database needed for running tests.
+- Jest unit/service tests use `mongodb-memory-server`.
+- Integration tests live in `src/__tests__/endpoints.integration.test.js`.
+- Smoke tests use Playwright.
 
-## Environment Variables
+See [TESTING.md](TESTING.md) for more detail.
+```text
+backend/
+├── src/app.js                  # Express app wiring
+├── src/index.js                # Config load, JWT init, DB init, server start
+├── src/config/env.js           # Environment file loading
+├── src/db/init.js              # Mongoose connection
+├── src/middleware/jwt.js       # JWT middleware initialization
+├── src/routes/posts.js         # Post endpoints
+├── src/routes/users.js         # Auth and user endpoints
+├── src/services/posts.js       # Post business logic
+├── src/services/users.js       # User and login logic
+└── test/                       # Jest global setup/teardown helpers
+````
 
-| Variable       | Description               | Example                             |
-| -------------- | ------------------------- | ----------------------------------- |
-| `NODE_ENV`     | Environment name          | `development`, `production`, `test` |
-| `DATABASE_URL` | MongoDB connection string | `mongodb://localhost:27017/blog`    |
-| `PORT`         | Server port               | `8080`                              |
+## Production Deployment
 
-## Configuration Loading
+The backend is deployed by [../.github/workflows/cd-backend.yaml](../.github/workflows/cd-backend.yaml) with these current characteristics:
 
-The application uses a smart configuration system:
+- Cloud Run service: `blog-backend-service`
+- GCP project: `oidc-github-01`
+- Region: `us-central1`
+- Image source: Docker Hub commit-tagged image
+- Runtime service account: `blog-backend-runtime@oidc-github-01.iam.gserviceaccount.com`
+- `JWT_EXPIRES_IN=7d`
+- `DATABASE_URL` from GCP Secret Manager secret `MONGODB_URI`
+- `JWT_SECRET` from GCP Secret Manager secret `JWT_SECRET`
 
-1. Base config from `.env`
-2. Environment-specific overrides from `.env.[NODE_ENV]`
-3. System environment variables (highest priority)
+- [ENV_CONFIG.md](ENV_CONFIG.md)
+- [TESTING.md](TESTING.md)
+- [../.github/workflows/README.md](../.github/workflows/README.md)
 
-See [ENV_CONFIG.md](./ENV_CONFIG.md) for detailed configuration documentation.
-
-## Testing
-
-This project uses Jest with a multi-layer setup:
-
-- **Global Setup**: Creates in-memory MongoDB instance
-- **Per-File Setup**: Establishes database connection and creates test user
-- **Individual Tests**: Run against isolated, fresh database
-
-**Key features:**
-✅ No external services required  
-✅ Fast in-memory database  
-✅ Complete test isolation  
-✅ Idempotent test data
-
-For comprehensive testing information, see [TESTING.md](./TESTING.md).
-
-## Development
-
-### Code Style
-
-Uses ESLint and Prettier for code formatting:
-
-```bash
-npm run lint
-```
-
-### Database Models
-
-Models are defined in `src/db/models/`:
-
-- **Post**: Blog post with title, content, author, tags
-- **User**: User with username, email, password
-
-## GCP Deployment
-
-When deploying to Google Cloud Platform:
-
-1. Backend is deployed to Cloud Run
-2. Environment variables are set in Cloud Run configuration
 3. MongoDB Atlas is used for production database
-
-The application expects `DATABASE_URL` to be injected at runtime in production.
 
 ## Troubleshooting
 

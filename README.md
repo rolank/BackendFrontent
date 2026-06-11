@@ -1,287 +1,208 @@
-# Full-Stack Blog Project
+## Full-Stack Blog Project
 
-A modern full-stack web application with Express backend, React frontend, and MongoDB database. Deployed on Google Cloud Platform with CI/CD pipeline.
+React frontend + Express/Mongoose backend for a blog application. The repository is deployed to Google Cloud Run, with GitHub Actions handling CI/CD, Docker Hub storing built images, and Google Workload Identity Federation handling GitHub-to-GCP authentication.
 
-## Project Structure
+## Repository Layout
 
-```
-├── backend/                 # Express.js REST API
-│   ├── src/
-│   ├── package.json
-│   ├── jest.config.json
-│   ├── Dockerfile
-│   ├── README.md           # Backend documentation
-│   └── TESTING.md          # Backend testing guide
-├── src/                    # React frontend
-│   ├── components/
-│   ├── api/
-│   └── config/
-├── public/                 # Static assets
-├── package.json            # Frontend dependencies
-├── Dockerfile              # Frontend image
-├── docker-compose.yaml     # Local development
-└── README.md              # This file
+```text
+.
+├── backend/                  # Express API, MongoDB models, Jest/Playwright tests
+├── src/                      # React app, routes, pages, React Query data layer
+├── public/                   # Static assets
+├── .github/workflows/        # CI/CD definitions and workflow docs
+├── compose.yaml              # Local multi-container setup
+├── Dockerfile                # Frontend image build
+├── default.conf              # Nginx config for frontend container
+├── REACT-QUERY-GUIDE.md      # React Query notes
+└── README.md                 # Project overview
 ```
 
-## Quick Start
+## Stack
+
+- Frontend: React 19, React Router 7, TanStack Query, Vite 6
+- Backend: Express 5, Mongoose 9, JWT auth, dotenv
+- Database: MongoDB 8
+- Tests: Vitest on the frontend, Jest and Playwright smoke tests on the backend
+- Deployment: Docker images pushed to Docker Hub, deployed to Cloud Run
+- Auth to GCP: GitHub Actions OIDC via Workload Identity Federation
+
+## Local Development
 
 ### Prerequisites
 
-- Node.js 22.x+
-- Docker & Docker Compose (optional, for local deployment)
-- MongoDB 8.0.11+ (for backend - can run via Docker)
+- Node.js 22+
+- npm
+- Docker (recommended for MongoDB and compose-based local runs)
 
-### Local Development
-
-**1. Install dependencies:**
+### Install Dependencies
 
 ```bash
-# Frontend (from root)
 npm install
-
-# Backend
-cd backend
-npm install
+cd backend && npm install
 ```
 
-**2. Start MongoDB (required for backend):**
+### Start MongoDB Locally
 
 ```bash
 docker run -d --name dbserver -p 27017:27017 --restart unless-stopped mongo:8.0.11
 ```
 
-**3. Setup environment files:**
+### Backend Environment
 
-```bash
-# Backend
-cd backend
-cp .env.example .env
-# Update .env with DATABASE_URL if needed
+Create `backend/.env` if it does not already exist. A typical local setup is:
+
+```dotenv
+NODE_ENV=development
+DATABASE_URL=mongodb://localhost:27017/blog
+PORT=8080
+JWT_SECRET=replace-me
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=http://localhost:5173
 ```
 
-**4. Run the applications:**
+### Run the App
 
 ```bash
-# Terminal 1 - Backend
+# terminal 1
 cd backend
 npm run dev
 
-# Terminal 2 - Frontend (from root)
+# terminal 2
+cd /path/to/BackendFrontent
 npm run dev
 ```
 
-Frontend will be available at `http://localhost:5173`
-Backend will be available at `http://localhost:8080`
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:8080`
+- Frontend fallback API URL: `http://localhost:8080/api/v1`
 
-### Testing
+The frontend reads `VITE_BACKEND_URL` at build time. For local dev, if that variable is not supplied, it falls back to `http://localhost:8080/api/v1`.
 
-**Frontend tests (using Vitest):**
+## Local Docker Compose
+
+The repo also includes [compose.yaml](compose.yaml) for a containerized local setup:
 
 ```bash
-# Run all tests
+docker compose up --build
+```
+
+Current compose ports:
+
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:3001`
+- MongoDB: `mongodb://localhost:27017`
+
+## Tests and Quality Checks
+
+### Frontend
+
+```bash
 npm test
-
-# Run tests in UI mode
 npm run test:ui
-
-# Run tests with coverage
 npm run test:coverage
-```
-
-**Backend tests (using Jest):**
-
-```bash
-cd backend
-npm test
-```
-
-### Building for Production
-
-**Frontend:**
-
-```bash
+npm run lint
 npm run build
-npm run preview  # Preview the production build locally
 ```
 
-**Backend:**
-
-Docker image is built automatically in the CI/CD pipeline. See `.github/workflows/cd-backend.yaml`
-
----
-
-## Frontend Development
-
-### Frontend Stack
-
-- **Framework**: React 19
-- **Build Tool**: Vite 6
-- **Entry Point**: `src/main.jsx` (Vite's default entry point)
-- **Testing**: Vitest + React Testing Library
-- **Routing**: React Router v7
-- **State Management**: React Query (TanStack Query)
-- **Styling**: CSS modules
-- **Linting**: ESLint
-- **Code Formatting**: Prettier
-
-### Frontend Scripts
+### Backend
 
 ```bash
-npm run dev       # Start Vite dev server (http://localhost:5173)
-npm run build     # Build for production
-npm run preview   # Preview production build
-npm run test      # Run tests with Vitest
-npm run test:ui   # Run tests with interactive UI
-npm run test:coverage  # Run tests with coverage report
-npm run lint      # Check code style with ESLint
-npm start         # Serve production build
-```
-
-### Testing the Frontend
-
-The frontend uses **Vitest** for unit and component testing:
-
-**Run tests:**
-
-```bash
+cd backend
 npm test
+npm run test:integration
+npm run test:smoke
 ```
 
-**Run tests with UI:**
+## Deployment Overview
 
-```bash
-npm run test:ui
+Production uses two Cloud Run services:
+
+- Frontend: `blog-frontend-service`
+- Backend: `blog-backend-service`
+
+Current production backend API URL used by the frontend build:
+
+```text
+https://blog-backend-service-1010347128743.us-central1.run.app/api/v1
 ```
 
-**Run tests with coverage:**
+### How Frontend Production Builds Work
 
-```bash
-npm run test:coverage
+The frontend image is built from the root [Dockerfile](Dockerfile). The workflow passes:
+
+```text
+BUILD_ARG_BACKEND_URL=https://blog-backend-service-1010347128743.us-central1.run.app/api/v1
 ```
 
-**Writing tests:**
+The Dockerfile maps that build arg to `VITE_BACKEND_URL`, so the final JS bundle contains the production API URL at build time.
 
-```javascript
-// src/components/MyComponent.test.jsx
-import { render, screen } from "@testing-library/react";
-import MyComponent from "./MyComponent";
+### How Backend Production Deploys Work
 
-describe("MyComponent", () => {
-  it("renders correctly", () => {
-    render(<MyComponent />);
-    expect(screen.getByText("Hello")).toBeInTheDocument();
-  });
-});
+The backend image is built from `backend/Dockerfile` and deployed to Cloud Run with:
+
+- `NODE_ENV=production`
+- `JWT_EXPIRES_IN=7d`
+- `DATABASE_URL` from GCP Secret Manager secret `MONGODB_URI`
+- `JWT_SECRET` from GCP Secret Manager secret `JWT_SECRET`
+
+### Image Registry
+
+Both frontend and backend images are built in GitHub Actions and pushed to Docker Hub with a commit-SHA tag:
+
+```text
+<dockerhub-username>/blog-frontend:<commit-sha>
+<dockerhub-username>/blog-backend:<commit-sha>
 ```
 
-### Frontend Test Specifications
+## GitHub / GCP Configuration Summary
 
-#### Test File Structure
+### GitHub Variables
 
-**Naming Convention:**
+- `DOCKERHUB_USERNAME`
 
-- Test files use `.test.jsx` or `.test.js` extension
-- Located alongside component files: `src/components/MyComponent.jsx` → `src/components/MyComponent.test.jsx`
-- Vitest automatically discovers files matching `src/**/*.test.{js,jsx,ts,tsx}`
+### GitHub Secrets
 
-**File Organization:**
+- `DOCKERHUB_TOKEN`
 
-```
-src/
-├── components/
-│   ├── Layout.jsx
-│   ├── Layout.test.jsx      # Test for Layout
-│   ├── Post.jsx
-│   ├── Post.test.jsx        # Test for Post
-│   └── PostList.jsx
-│       └── PostList.test.jsx # Test for PostList
-├── pages/
-│   ├── HomePage.jsx
-│   └── HomePage.test.jsx    # Test for HomePage
-└── api/
-    ├── posts.js
-    └── posts.test.js        # Test for API functions
-```
+### GCP
 
-#### Basic Test Pattern
+- Project ID: `oidc-github-01`
+- Region: `us-central1`
+- Workload Identity Provider: `projects/1010347128743/locations/global/workloadIdentityPools/github-pool/providers/github-provider`
+- Deployer service account: `cloudrun-deployer@oidc-github-01.iam.gserviceaccount.com`
 
-```javascript
-// src/components/Layout.test.jsx
-import { render, screen } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import Layout from "./Layout";
+## Important Notes
 
-describe("Layout Component", () => {
-  // Setup common to all tests
-  beforeEach(() => {
-    // Clear mocks, reset state, etc.
-  });
+- Frontend API configuration is a build-time concern, not a runtime env var inside the browser.
+- [backend/README.md](backend/README.md)
+- [.github/workflows/README.md](.github/workflows/README.md)
+- [REACT-QUERY-GUIDE.md](REACT-QUERY-GUIDE.md)
+- [backend/TESTING.md](backend/TESTING.md)
+- [backend/ENV_CONFIG.md](backend/ENV_CONFIG.md)
 
-  it("renders navbar with links", () => {
-    render(
-      <BrowserRouter>
-        <Layout />
-      </BrowserRouter>,
-    );
+      // Verify submission
+      expect(mockSubmit).toHaveBeenCalledWith({
+        title: "Test Post",
+        content: "Post content",
+      });
 
-    expect(screen.getByRole("link", { name: /home/i })).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /create post/i }),
-    ).toBeInTheDocument();
-  });
-
-  it("displays user info when logged in", () => {
-    // Test authenticated state
-  });
-
-  it("shows login link when not authenticated", () => {
-    // Test unauthenticated state
-  });
-});
-```
-
-#### Testing User Interactions
-
-```javascript
-// src/components/CreatePost.test.jsx
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import CreatePost from "./CreatePost";
-
-describe("CreatePost Component", () => {
-  it("submits form with user input", async () => {
-    const user = userEvent.setup();
-    const mockSubmit = vi.fn();
-
-    render(<CreatePost onSubmit={mockSubmit} />);
-
-    // User fills form
-    await user.type(screen.getByLabelText(/title/i), "Test Post");
-    await user.type(screen.getByLabelText(/content/i), "Post content");
-
-    // User clicks submit
-    await user.click(screen.getByRole("button", { name: /submit/i }));
-
-    // Verify submission
-    expect(mockSubmit).toHaveBeenCalledWith({
-      title: "Test Post",
-      content: "Post content",
-    });
   });
 
   it("validates required fields", async () => {
-    const user = userEvent.setup();
+  const user = userEvent.setup();
 
-    render(<CreatePost />);
+      render(<CreatePost />);
 
-    // Try to submit empty form
-    await user.click(screen.getByRole("button", { name: /submit/i }));
+      // Try to submit empty form
+      await user.click(screen.getByRole("button", { name: /submit/i }));
 
-    // Verify error message
-    expect(screen.getByText(/title is required/i)).toBeInTheDocument();
+      // Verify error message
+      expect(screen.getByText(/title is required/i)).toBeInTheDocument();
+
   });
-});
-```
+  });
+
+````
 
 #### Testing with Async Operations
 
@@ -300,9 +221,6 @@ describe("PostList Component", () => {
           Promise.resolve([
             { _id: "1", title: "Post 1", author: "alice" },
             { _id: "2", title: "Post 2", author: "bob" },
-          ]),
-      }),
-    );
 
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -316,9 +234,6 @@ describe("PostList Component", () => {
 
     // Wait for data to load
     await waitFor(() => {
-      expect(screen.getByText("Post 1")).toBeInTheDocument();
-      expect(screen.getByText("Post 2")).toBeInTheDocument();
-    });
   });
 
   it("handles loading state", () => {
@@ -345,8 +260,6 @@ describe("PostList Component", () => {
     });
   });
 });
-```
-
 #### Testing with React Router
 
 ```javascript
@@ -368,10 +281,6 @@ describe("Posts Loader", () => {
 
     // Simulate request with query parameters
     const request = new Request(
-      "http://localhost:5173/posts?author=alice&sortBy=title",
-    );
-
-    const result = await loader({ request });
 
     expect(result.posts).toHaveLength(1);
     expect(mockFetch).toHaveBeenCalledWith(
@@ -379,40 +288,25 @@ describe("Posts Loader", () => {
     );
   });
 });
-```
+````
 
 #### Testing API Functions
 
 ```javascript
 // src/api/posts.test.js
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { getPosts, createPost } from "./posts";
 
 describe("Posts API", () => {
   const originalFetch = global.fetch;
-
   beforeEach(() => {
     global.fetch = vi.fn();
   });
-
-  afterEach(() => {
-    global.fetch = originalFetch;
-    vi.restoreAllMocks();
   });
 
   it("fetches posts with query parameters", async () => {
-    const mockPosts = [
-      { _id: "1", title: "First Post", author: "alice" },
-      { _id: "2", title: "Second Post", author: "bob" },
-    ];
 
     // Mock fetch to return successful response
     global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockPosts,
-    });
-
-    const queryParams = { author: "alice", sortBy: "createdAt" };
     const posts = await getPosts(queryParams);
 
     // Verify fetch was called correctly
